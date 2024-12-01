@@ -1,0 +1,3 @@
+@tailwind base;    /* Estilos base de Tailwind */
+@tailwind components; /* Componentes predefinidos */
+@tailwind utilities;  /* Utilidades personalizables */

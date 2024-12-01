@@ -1,0 +1,16 @@
+npm install multer
+
+Express: Framework de servidor web.
+Mongoose: ODM para MongoDB.
+bcryptjs: Para el hashing de contraseñas.
+jsonwebtoken (JWT): Para autenticación.
+multer: Para subir imágenes.
+dotenv: Para gestionar variables de entorno.
+
+npm install express mongoose bcryptjs jsonwebtoken multer dotenv
+
+
+npm install @react-navigation/native @react-navigation/stack react-native-gesture-handler react-native-reanimated react-native-screens react-native-safe-area-context react-native-async-storage/async-storage
+
+npx react-native init RegistroAsistenciaApp
+npx @react-native-community/cli init RegistroAsistenciaApp
