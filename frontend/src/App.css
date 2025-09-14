@@ -1,3 +1,115 @@
+/* Navegación principal */
+.nav {
+  display: flex;
+  justify-content: center;
+  gap: 1rem;
+  margin-bottom: 2rem;
+}
+.nav button, .nav a {
+  background: #222;
+  color: #fff;
+  border: none;
+  padding: 0.7em 1.5em;
+  border-radius: 10px;
+  font-size: 1.1em;
+  cursor: pointer;
+  transition: background 0.2s;
+}
+.nav button.active, .nav a.active {
+  background: #fff;
+  color: #222;
+  border: 2px solid #fff;
+}
+
+/* Formularios */
+form {
+  background: #222;
+  padding: 1.5em;
+  border-radius: 10px;
+  margin: 0 auto 2em auto;
+  max-width: 400px;
+  box-shadow: 0 2px 8px #0002;
+}
+form input, form select, form button {
+  margin: 0.5em 0;
+  padding: 0.7em;
+  border-radius: 6px;
+  border: 1px solid #444;
+  width: 100%;
+  font-size: 1em;
+}
+form button {
+  background: #646cff;
+  color: #fff;
+  border: none;
+  font-weight: bold;
+  cursor: pointer;
+  margin-top: 1em;
+}
+form button:disabled {
+  background: #888;
+  cursor: not-allowed;
+}
+
+/* Listas */
+ul {
+  list-style: none;
+  padding: 0;
+  margin: 0 auto;
+  max-width: 500px;
+}
+li {
+  background: #222;
+  margin-bottom: 0.7em;
+  padding: 1em;
+  border-radius: 8px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  box-shadow: 0 1px 4px #0001;
+}
+li button {
+  margin-left: 0.5em;
+  background: #e74c3c;
+  color: #fff;
+  border: none;
+  border-radius: 6px;
+  padding: 0.5em 1em;
+  cursor: pointer;
+  font-size: 0.95em;
+  transition: background 0.2s;
+}
+li button:hover {
+  background: #c0392b;
+}
+
+/* Mensajes */
+.success {
+  color: #27ae60;
+  font-weight: bold;
+}
+.error {
+  color: #e74c3c;
+  font-weight: bold;
+}
+
+@media (max-width: 600px) {
+  #root {
+    padding: 0.5rem;
+  }
+  form {
+    max-width: 98vw;
+    padding: 1em;
+  }
+  ul {
+    max-width: 98vw;
+  }
+  li {
+    flex-direction: column;
+    align-items: flex-start;
+    padding: 0.7em;
+  }
+}
 #root {
   max-width: 1280px;
   margin: 0 auto;

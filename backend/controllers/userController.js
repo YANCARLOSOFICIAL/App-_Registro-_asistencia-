@@ -1,3 +1,78 @@
+// Login por imagen facial
+exports.loginFacial = async (req, res) => {
+    const faceImage = req.file;
+    if (!faceImage) return res.status(400).json({ error: 'Imagen de rostro requerida' });
+    try {
+        const users = await User.find({ faceImage: { $ne: null } });
+        let matchedUser = null;
+        for (const user of users) {
+            if (user.faceImage) {
+                const userImageBuffer = Buffer.from(user.faceImage, 'base64');
+                const capturedImageBuffer = await require('sharp')(faceImage.buffer).resize(200, 200).toBuffer();
+                if (capturedImageBuffer.equals(userImageBuffer)) {
+                    matchedUser = user;
+                    break;
+                }
+            }
+        }
+        if (!matchedUser) return res.status(401).json({ error: 'No coincide ninguna imagen registrada' });
+        const jwt = require('jsonwebtoken');
+        const token = jwt.sign({ id: matchedUser._id, role: matchedUser.role }, process.env.JWT_SECRET || 'secret', { expiresIn: '2h' });
+        res.json({ token, user: { id: matchedUser._id, name: matchedUser.name, email: matchedUser.email, role: matchedUser.role } });
+    } catch (error) {
+        res.status(500).json({ error: error.message });
+    }
+};
+const jwt = require('jsonwebtoken');
+// Login de usuario
+exports.loginUser = async (req, res) => {
+    const { email, password } = req.body;
+    try {
+        const user = await User.findOne({ email });
+        if (!user) return res.status(400).json({ error: 'Usuario no encontrado' });
+        const valid = await require('bcryptjs').compare(password, user.password);
+        if (!valid) return res.status(400).json({ error: 'Contraseña incorrecta' });
+        const token = jwt.sign({ id: user._id, role: user.role }, process.env.JWT_SECRET || 'secret', { expiresIn: '2h' });
+        res.json({ token, user: { id: user._id, name: user.name, email: user.email, role: user.role } });
+    } catch (error) {
+        res.status(500).json({ error: error.message });
+    }
+};
+// Editar usuario
+exports.updateUser = async (req, res) => {
+    try {
+        const { name, email, role } = req.body;
+        const user = await User.findByIdAndUpdate(
+            req.params.id,
+            { name, email, role },
+            { new: true }
+        );
+        if (!user) return res.status(404).json({ error: 'Usuario no encontrado' });
+        res.status(200).json({ message: 'Usuario actualizado', user });
+    } catch (error) {
+        res.status(400).json({ error: error.message });
+    }
+};
+
+// Eliminar usuario
+exports.deleteUser = async (req, res) => {
+    try {
+        const user = await User.findByIdAndDelete(req.params.id);
+        if (!user) return res.status(404).json({ error: 'Usuario no encontrado' });
+        res.status(200).json({ message: 'Usuario eliminado' });
+    } catch (error) {
+        res.status(400).json({ error: error.message });
+    }
+};
+// Obtener todos los usuarios
+exports.getAllUsers = async (req, res) => {
+    try {
+        const users = await User.find({}, 'name email role');
+        res.status(200).json(users);
+    } catch (error) {
+        res.status(500).json({ error: error.message });
+    }
+};
 const User = require('../models/User');
 const bcrypt = require('bcryptjs');
 const fs = require('fs');
