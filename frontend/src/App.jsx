@@ -7,6 +7,7 @@ import Users from './pages/Users';
 import Attendance from './pages/Attendance';
 import Documents from './pages/Documents';
 import AdminDashboard from './pages/AdminDashboard';
+import Events from './pages/Events';
 import './App.css';
 
 function App() {
@@ -48,9 +49,10 @@ function App() {
     <div>
       <nav className="nav">
         <span>Bienvenido, {user.name} ({user.role})</span>
-        <button onClick={() => setPage('users')} className={page==='users'?'active':''}>Usuarios</button>
-        <button onClick={() => setPage('attendance')} className={page==='attendance'?'active':''}>Asistencias</button>
-        <button onClick={() => setPage('documents')} className={page==='documents'?'active':''}>Documentos</button>
+  <button onClick={() => setPage('users')} className={page==='users'?'active':''}>Usuarios</button>
+  <button onClick={() => setPage('attendance')} className={page==='attendance'?'active':''}>Asistencias</button>
+  <button onClick={() => setPage('documents')} className={page==='documents'?'active':''}>Documentos</button>
+  <button onClick={() => setPage('events')} className={page==='events'?'active':''}>Eventos</button>
         <button onClick={handleLogout}>Cerrar sesión</button>
       </nav>
       {/* Paneles según rol */}
@@ -60,12 +62,14 @@ function App() {
           {page === 'users' && <Users />}
           {page === 'attendance' && <Attendance />}
           {page === 'documents' && <Documents />}
+          {page === 'events' && <Events user={user} />}
         </>
       ) : (
         <>
           {page === 'users' && <Users userId={user.id} />}
           {page === 'attendance' && <Attendance />}
           {page === 'documents' && <Documents onlyDownload={true} />}
+          {page === 'events' && <Events user={user} />}
         </>
       )}
     </div>

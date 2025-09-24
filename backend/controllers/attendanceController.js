@@ -1,3 +1,13 @@
+// Listar eventos a los que ha asistido el usuario
+const Event = require('../models/Event');
+exports.getUserEvents = async (req, res) => {
+    try {
+        const events = await Event.find({ attendees: req.user._id });
+        res.json(events);
+    } catch (err) {
+        res.status(500).json({ error: err.message });
+    }
+};
 const Attendance = require('../models/Attendance');
 const User = require('../models/User');
 const fs = require('fs');
@@ -65,6 +75,7 @@ exports.verifyAttendance = async (req, res) => {
         const attendance = new Attendance({
             user: matchedUser._id,
             isVerifiedByFacialRecognition: true,
+            event: req.body.eventId || req.body.event || null
         });
 
         await attendance.save();

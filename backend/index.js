@@ -21,12 +21,14 @@ app.use(express.json());
 const userRoutes = require('./routes/usersRoutes');
 const attendanceRoutes = require('./routes/attendanceRoutes');
 const documentRoutes = require('./routes/documentRoutes');
+const eventRoutes = require('./routes/eventRoutes');
 
 
 // Usar las rutas
 app.use('/api/users', userRoutes);
 app.use('/api/attendance', attendanceRoutes);
 app.use('/api/documents', documentRoutes);
+app.use('/api/events', eventRoutes);
 
 // Configurar el puerto
 const PORT = process.env.PORT || 5000;

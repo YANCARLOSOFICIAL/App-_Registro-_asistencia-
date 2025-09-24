@@ -2,6 +2,7 @@ const mongoose = require('mongoose');
 
 const AttendanceSchema = new mongoose.Schema({
     user: { type: mongoose.Schema.Types.ObjectId, ref: 'User', required: true },
+    event: { type: mongoose.Schema.Types.ObjectId, ref: 'Event' },
     date: { type: Date, default: Date.now },
     isVerifiedByFacialRecognition: { type: Boolean, default: false } // Indicar si fue con reconocimiento facial
 });

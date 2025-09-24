@@ -5,6 +5,10 @@ function Attendance() {
   const [verifying, setVerifying] = useState(false);
   const [verifyError, setVerifyError] = useState("");
   const [verifySuccess, setVerifySuccess] = useState("");
+  const [attendance, setAttendance] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [userEvents, setUserEvents] = useState([]);
+  const [loadingEvents, setLoadingEvents] = useState(true);
 
   const handleVerify = async (e) => {
     e.preventDefault();
@@ -35,8 +39,24 @@ function Attendance() {
     }
     setVerifying(false);
   };
-  const [attendance, setAttendance] = useState([]);
-  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    fetch('http://localhost:5000/api/attendance')
+      .then(res => res.json())
+      .then(data => {
+        setAttendance(data);
+        setLoading(false);
+      });
+    // Obtener eventos a los que ha asistido el usuario
+    fetch('http://localhost:5000/api/attendance/events', {
+      headers: { 'Authorization': 'Bearer ' + localStorage.getItem('token') }
+    })
+      .then(res => res.json())
+      .then(data => {
+        setUserEvents(data);
+        setLoadingEvents(false);
+      });
+  }, []);
 
   useEffect(() => {
   fetch('http://localhost:5000/api/attendance')
@@ -50,16 +70,24 @@ function Attendance() {
   return (
     <div>
       <h2>Asistencias</h2>
-      <form onSubmit={handleVerify} style={{ marginBottom: 20 }}>
-        <input type="file" accept="image/*" onChange={e => setFaceImage(e.target.files[0])} required />
-        <button type="submit" disabled={verifying}>Registrar Asistencia Facial</button>
-        {verifyError && <p style={{color:'red'}}>{verifyError}</p>}
-        {verifySuccess && <p style={{color:'green'}}>{verifySuccess}</p>}
-      </form>
-      {loading ? <p>Cargando...</p> : (
+      {/* El formulario de registro facial solo debe ir en la vista de eventos */}
+      {loading ? <p>Cargando asistencias...</p> : (
         <ul>
           {attendance.map(record => (
-            <li key={record._id}>{record.user?.name || 'Sin nombre'} - {record.isVerifiedByFacialRecognition ? 'Verificado' : 'No verificado'}</li>
+            <li key={record._id}>
+              {record.user?.name || 'Sin nombre'} - {record.isVerifiedByFacialRecognition ? 'Verificado' : 'No verificado'}
+              {record.event && (
+                <span> | Evento: <strong>{record.event.name || record.event}</strong></span>
+              )}
+            </li>
+          ))}
+        </ul>
+      )}
+      <h3>Eventos a los que has asistido</h3>
+      {loadingEvents ? <p>Cargando eventos...</p> : (
+        <ul>
+          {userEvents.map(event => (
+            <li key={event._id}><strong>{event.name}</strong> - {event.description} - {new Date(event.date).toLocaleDateString()}</li>
           ))}
         </ul>
       )}
