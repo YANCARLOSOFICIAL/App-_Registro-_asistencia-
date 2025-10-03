@@ -1,14 +1,17 @@
-import React, { useEffect, useState } from 'react';
-import UserForm from '../components/UserForm';
+import React, { useEffect, useState } from "react";
+import UserForm from "../components/UserForm";
 
 function Users() {
+  const [user, setUser] = useState(null);
+  const [users, setUsers] = useState([]);
   const [editId, setEditId] = useState(null);
   const [editName, setEditName] = useState("");
   const [editEmail, setEditEmail] = useState("");
   const [editRole, setEditRole] = useState("");
+  const [loading, setLoading] = useState(true);
 
-  const user = JSON.parse(localStorage.getItem('user') || '{}');
-  const isAdmin = user.role === 'admin';
+  const isAdmin = user?.role === 'admin';
+
   const startEdit = (userObj) => {
     setEditId(userObj._id);
     setEditName(userObj.name);
@@ -38,6 +41,7 @@ function Users() {
       alert('Error al editar usuario');
     }
   };
+
   const handleDelete = async (id) => {
     if (!window.confirm('¿Seguro que deseas eliminar este usuario?')) return;
     const res = await fetch(`http://localhost:5000/api/users/${id}`, { method: 'DELETE' });
@@ -47,16 +51,40 @@ function Users() {
       alert('Error al eliminar usuario');
     }
   };
-  const [users, setUsers] = useState([]);
-  const [loading, setLoading] = useState(true);
+
   useEffect(() => {
-    fetch('http://localhost:5000/api/users')
-      .then(res => res.json())
-      .then(data => {
-        setUsers(data);
-        setLoading(false);
-      });
+    // Obtener usuario desde localStorage
+    const storedUser = JSON.parse(localStorage.getItem('user'));
+    setUser(storedUser);
+
+    if (storedUser && storedUser.role === 'admin') {
+      fetch('/api/users', {
+        headers: {
+          Authorization: `Bearer ${storedUser.token}`,
+        },
+      })
+        .then(res => res.json())
+        .then(data => {
+          setUsers(data);
+          setLoading(false);
+        });
+    }
   }, []);
+
+  if (!user) {
+    return <div>Cargando...</div>;
+  }
+
+  if (user.role !== 'admin') {
+    return (
+      <div>
+        <h2>Mi perfil</h2>
+        <p>Nombre: {user.name}</p>
+        <p>Email: {user.email}</p>
+        {/* Otros datos */}
+      </div>
+    );
+  }
 
   return (
     <div style={{ textAlign: 'center' }}>
