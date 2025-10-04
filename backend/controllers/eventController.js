@@ -20,7 +20,9 @@ exports.createEvent = async (req, res) => {
 // Listar eventos
 exports.getEvents = async (req, res) => {
   try {
-    const events = await Event.find().populate('createdBy', 'username');
+    const events = await Event.find()
+      .populate('createdBy', 'username')
+      .populate('attendees', 'name email'); // <-- populate attendees with name and email
     res.json(events);
   } catch (err) {
     res.status(500).json({ error: err.message });

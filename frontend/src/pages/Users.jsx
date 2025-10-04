@@ -25,9 +25,13 @@ function Users() {
 
   const handleEdit = async (e) => {
     e.preventDefault();
+    const token = localStorage.getItem('token');
     const res = await fetch(`http://localhost:5000/api/users/${editId}`, {
       method: 'PUT',
-      headers: { 'Content-Type': 'application/json' },
+      headers: {
+        'Content-Type': 'application/json',
+        ...(token && { 'Authorization': `Bearer ${token}` })
+      },
       body: JSON.stringify({ name: editName, email: editEmail, role: editRole })
     });
     if (res.ok) {
@@ -40,7 +44,11 @@ function Users() {
   };
   const handleDelete = async (id) => {
     if (!window.confirm('¿Seguro que deseas eliminar este usuario?')) return;
-    const res = await fetch(`http://localhost:5000/api/users/${id}`, { method: 'DELETE' });
+    const token = localStorage.getItem('token');
+    const res = await fetch(`http://localhost:5000/api/users/${id}`, {
+      method: 'DELETE',
+      headers: token ? { 'Authorization': `Bearer ${token}` } : {}
+    });
     if (res.ok) {
       setUsers(users => users.filter(u => u._id !== id));
     } else {

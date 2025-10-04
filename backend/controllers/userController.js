@@ -42,9 +42,21 @@ exports.loginUser = async (req, res) => {
 exports.updateUser = async (req, res) => {
     try {
         const { name, email, role } = req.body;
+        // Obtener el usuario actual de la base de datos
+        const existingUser = await User.findById(req.params.id);
+        if (!existingUser) return res.status(404).json({ error: 'Usuario no encontrado' });
+        // Si el solicitante no es admin, no permitir cambiar el rol
+        if (req.user.role !== 'admin' && role && role !== existingUser.role) {
+            return res.status(403).json({ error: 'Solo un administrador puede cambiar el rol' });
+        }
+        const updatedData = { name, email };
+        // Solo admin puede actualizar el rol
+        if (req.user.role === 'admin' && role) {
+            updatedData.role = role;
+        }
         const user = await User.findByIdAndUpdate(
             req.params.id,
-            { name, email, role },
+            updatedData,
             { new: true }
         );
         if (!user) return res.status(404).json({ error: 'Usuario no encontrado' });
