@@ -29,13 +29,18 @@ function Users() {
   const handleEdit = async (e) => {
     e.preventDefault();
     const token = localStorage.getItem('token');
+    // Build payload conditionally
+    const payload = { name: editName, email: editEmail };
+    if (isAdmin) {
+      payload.role = editRole;
+    }
     const res = await fetch(`http://localhost:5000/api/users/${editId}`, {
       method: 'PUT',
       headers: {
         'Content-Type': 'application/json',
         ...(token && { 'Authorization': `Bearer ${token}` })
       },
-      body: JSON.stringify({ name: editName, email: editEmail, role: editRole })
+      body: JSON.stringify(payload)
     });
     if (res.ok) {
       const data = await res.json();
@@ -66,14 +71,28 @@ function Users() {
     setUser(storedUser);
 
     if (storedUser && storedUser.role === 'admin') {
-      fetch('/api/users', {
+      // Fetch usuarios con manejo de errores y verificación de JSON
+      fetch('http://localhost:5000/api/users', {
         headers: {
           Authorization: `Bearer ${storedUser.token}`,
         },
       })
-        .then(res => res.json())
+        .then(res => {
+          if (!res.ok) {
+            throw new Error(`HTTP ${res.status}`);
+          }
+          const contentType = res.headers.get('content-type') || '';
+          if (!contentType.includes('application/json')) {
+            throw new Error('Respuesta no es JSON');
+          }
+          return res.json();
+        })
         .then(data => {
           setUsers(data);
+          setLoading(false);
+        })
+        .catch(err => {
+          console.error('Error al obtener usuarios:', err);
           setLoading(false);
         });
     }

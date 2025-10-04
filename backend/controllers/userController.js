@@ -16,14 +16,12 @@ exports.loginFacial = async (req, res) => {
             }
         }
         if (!matchedUser) return res.status(401).json({ error: 'No coincide ninguna imagen registrada' });
-        const jwt = require('jsonwebtoken');
         const token = jwt.sign({ id: matchedUser._id, role: matchedUser.role }, process.env.JWT_SECRET || 'secret', { expiresIn: '2h' });
         res.json({ token, user: { id: matchedUser._id, name: matchedUser.name, email: matchedUser.email, role: matchedUser.role } });
     } catch (error) {
         res.status(500).json({ error: error.message });
     }
 };
-const jwt = require('jsonwebtoken');
 // Login de usuario
 exports.loginUser = async (req, res) => {
     const { email, password } = req.body;
@@ -91,10 +89,11 @@ const fs = require('fs');
 const sharp = require('sharp');
 const path = require('path');
 const imageHash = require('image-hash');
+const jwt = require('jsonwebtoken'); // Added for role verification during registration
 
 // Controlador para registrar un usuario
 exports.registerUser = async (req, res) => {
-    const { name, email, password } = req.body;
+    const { name, email, password, role } = req.body;
 
     try {
         // Cifrar la contraseña
@@ -109,12 +108,31 @@ exports.registerUser = async (req, res) => {
                 .toBuffer();
         }
 
+        // Determinar rol a asignar (solo admin puede asignar otro rol)
+        let roleToAssign = 'user';
+        if (role) {
+            try {
+                const authHeader = req.header('Authorization');
+                if (authHeader) {
+                    const token = authHeader.replace('Bearer ', '');
+                    const decoded = jwt.verify(token, process.env.JWT_SECRET || 'secret');
+                    const requestingUser = await User.findById(decoded.id);
+                    if (requestingUser && requestingUser.role === 'admin') {
+                        roleToAssign = role;
+                    }
+                }
+            } catch (e) {
+                // Si falla la verificación, mantener rol por defecto
+            }
+        }
+
         // Crear un nuevo usuario
         const user = new User({
             name,
             email,
             password: hashedPassword,
-            faceImage: faceImageBuffer // Almacenamos el Buffer de la imagen
+            faceImage: faceImageBuffer,
+            role: roleToAssign,
         });
 
         // Guardar en la base de datos

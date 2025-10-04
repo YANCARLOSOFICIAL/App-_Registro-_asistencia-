@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 
 function UserForm({ onUserAdded }) {
   const [success, setSuccess] = useState('');
@@ -8,6 +8,13 @@ function UserForm({ onUserAdded }) {
   const [faceImage, setFaceImage] = useState(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
+  const [role, setRole] = useState('user');
+  const [currentUser, setCurrentUser] = useState(null);
+
+  useEffect(() => {
+    const stored = JSON.parse(localStorage.getItem('user'));
+    setCurrentUser(stored);
+  }, []);
 
   const handleSubmit = async (e) => {
     e.preventDefault();
@@ -30,6 +37,10 @@ function UserForm({ onUserAdded }) {
     formData.append('email', email);
     formData.append('password', password);
     if (faceImage) formData.append('faceImage', faceImage);
+    // Solo admin puede enviar rol
+    if (currentUser?.role === 'admin') {
+      formData.append('role', role);
+    }
     try {
       const res = await fetch('http://localhost:5000/api/users/register', {
         method: 'POST',
@@ -56,6 +67,12 @@ function UserForm({ onUserAdded }) {
       <input type="email" placeholder="Email" value={email} onChange={e => setEmail(e.target.value)} required /> <br />
       <input type="password" placeholder="Contraseña" value={password} onChange={e => setPassword(e.target.value)} required /> <br />
       <input type="file" accept="image/*" onChange={e => setFaceImage(e.target.files[0])} /> <br />
+      {currentUser?.role === 'admin' && (
+        <select value={role} onChange={e => setRole(e.target.value)}>
+          <option value="user">user</option>
+          <option value="admin">admin</option>
+        </select>
+      )}<br />
       <button type="submit" disabled={loading}>{loading ? 'Registrando...' : 'Registrar'}</button>
   {error && <p style={{ color: 'red' }}>{error}</p>}
   {success && <p style={{ color: 'green' }}>{success}</p>}
