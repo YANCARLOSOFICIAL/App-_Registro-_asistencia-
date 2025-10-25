@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import Login from './pages/Login';
 import Register from './pages/Register';
@@ -12,7 +11,7 @@ import './App.css';
 
 function App() {
   const [user, setUser] = useState(null);
-  const [page, setPage] = useState('users');
+  const [page, setPage] = useState('dashboard');
   const [showRegister, setShowRegister] = useState(false);
   const [showFacial, setShowFacial] = useState(false);
 
@@ -25,53 +24,138 @@ function App() {
     localStorage.removeItem('token');
     localStorage.removeItem('user');
     setUser(null);
+    setPage('dashboard');
   };
 
+  // Pantallas de autenticación
   if (!user) {
     if (showRegister) {
-      return <Register onRegistered={() => setShowRegister(false)} onBack={() => setShowRegister(false)} />;
-    }
-    if (showFacial) {
-      return <LoginFacial onLogin={setUser} onBack={() => setShowFacial(false)} />;
-    }
-    return (
-      <>
-        <Login onLogin={setUser} />
-        <div style={{textAlign:'center', marginTop:20}}>
-          <button onClick={() => setShowRegister(true)} style={{background:'#646cff',color:'#fff',padding:'0.7em 1.5em',borderRadius:10,border:'none',fontWeight:'bold'}}>Registrarse</button>
-          <button onClick={() => setShowFacial(true)} style={{background:'#27ae60',color:'#fff',padding:'0.7em 1.5em',borderRadius:10,border:'none',fontWeight:'bold',marginLeft:10}}>Login facial</button>
+      return (
+        <div className="container container-sm" style={{ paddingTop: '2rem' }}>
+          <Register 
+            onRegistered={() => setShowRegister(false)} 
+            onBack={() => setShowRegister(false)} 
+          />
         </div>
-      </>
+      );
+    }
+    
+    if (showFacial) {
+      return (
+        <div className="container container-sm" style={{ paddingTop: '2rem' }}>
+          <LoginFacial 
+            onLogin={setUser} 
+            onBack={() => setShowFacial(false)} 
+          />
+        </div>
+      );
+    }
+    
+    return (
+      <div className="container container-sm" style={{ paddingTop: '2rem' }}>
+        <Login onLogin={setUser} />
+        
+        <div style={{ 
+          display: 'flex', 
+          gap: 'var(--spacing-md)', 
+          marginTop: 'var(--spacing-xl)',
+          flexWrap: 'wrap'
+        }}>
+          <button 
+            onClick={() => setShowRegister(true)} 
+            className="btn btn-primary"
+            style={{ flex: 1 }}
+          >
+            ✨ Crear cuenta
+          </button>
+          <button 
+            onClick={() => setShowFacial(true)} 
+            className="btn btn-secondary"
+            style={{ flex: 1 }}
+          >
+            📷 Login facial
+          </button>
+        </div>
+      </div>
     );
   }
 
+  const isAdmin = user.role === 'admin';
+
   return (
-    <div>
+    <div className="container" style={{ paddingTop: 'var(--spacing-lg)', paddingBottom: 'var(--spacing-2xl)' }}>
+      {/* Navegación */}
       <nav className="nav">
-        <span>Bienvenido, {user.name} ({user.role})</span>
-  <button onClick={() => setPage('users')} className={page==='users'?'active':''}>Usuarios</button>
-  <button onClick={() => setPage('attendance')} className={page==='attendance'?'active':''}>Asistencias</button>
-  <button onClick={() => setPage('documents')} className={page==='documents'?'active':''}>Documentos</button>
-  <button onClick={() => setPage('events')} className={page==='events'?'active':''}>Eventos</button>
-        <button onClick={handleLogout}>Cerrar sesión</button>
+        <div className="nav-brand">
+          <span style={{ fontSize: '1.5rem' }}>📊</span>
+          <span>Sistema de Asistencia</span>
+        </div>
+
+        <div className="nav-links">
+          {isAdmin && (
+            <button 
+              onClick={() => setPage('dashboard')} 
+              className={`nav-link ${page === 'dashboard' ? 'active' : ''}`}
+            >
+              📈 Dashboard
+            </button>
+          )}
+          <button 
+            onClick={() => setPage('users')} 
+            className={`nav-link ${page === 'users' ? 'active' : ''}`}
+          >
+            👥 Usuarios
+          </button>
+          <button 
+            onClick={() => setPage('attendance')} 
+            className={`nav-link ${page === 'attendance' ? 'active' : ''}`}
+          >
+            ✓ Asistencias
+          </button>
+          <button 
+            onClick={() => setPage('documents')} 
+            className={`nav-link ${page === 'documents' ? 'active' : ''}`}
+          >
+            📄 Documentos
+          </button>
+          <button 
+            onClick={() => setPage('events')} 
+            className={`nav-link ${page === 'events' ? 'active' : ''}`}
+          >
+            📅 Eventos
+          </button>
+        </div>
+
+        <div style={{ display: 'flex', gap: 'var(--spacing-md)', alignItems: 'center' }}>
+          <div className="nav-user">
+            <span className="nav-user-name">{user.name}</span>
+            <span className="nav-user-role">{user.role}</span>
+          </div>
+          <button onClick={handleLogout} className="btn btn-danger btn-sm">
+            🚪 Salir
+          </button>
+        </div>
       </nav>
-      {/* Paneles según rol */}
-      {user.role === 'admin' ? (
-        <>
-          <AdminDashboard />
-          {page === 'users' && <Users />}
-          {page === 'attendance' && <Attendance />}
-          {page === 'documents' && <Documents />}
-          {page === 'events' && <Events user={user} />}
-        </>
-      ) : (
-        <>
-          {page === 'users' && <Users userId={user.id} />}
-          {page === 'attendance' && <Attendance />}
-          {page === 'documents' && <Documents onlyDownload={true} />}
-          {page === 'events' && <Events user={user} />}
-        </>
-      )}
+
+      {/* Contenido principal */}
+      <main>
+        {isAdmin ? (
+          <>
+            {page === 'dashboard' && <AdminDashboard />}
+            {page === 'users' && <Users />}
+            {page === 'attendance' && <Attendance />}
+            {page === 'documents' && <Documents />}
+            {page === 'events' && <Events user={user} />}
+          </>
+        ) : (
+          <>
+            {page === 'users' && <Users userId={user.id} />}
+            {page === 'attendance' && <Attendance />}
+            {page === 'documents' && <Documents onlyDownload={true} />}
+            {page === 'events' && <Events user={user} />}
+          </>
+        )}
+      </main>
     </div>
   );
 }
