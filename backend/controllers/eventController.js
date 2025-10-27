@@ -2,6 +2,7 @@ const Event = require('../models/Event');
 const Attendance = require('../models/Attendance');
 const User = require('../models/User');
 const sharp = require('sharp');
+const NotificationService = require('../services/notificationService');
 
 // Crear evento
 exports.createEvent = async (req, res) => {
@@ -20,6 +21,19 @@ exports.createEvent = async (req, res) => {
       createdBy: req.user._id
     });
     await event.save();
+    
+    // Notificar a todos los usuarios sobre el nuevo evento
+    try {
+      await NotificationService.notifyAllUsers({
+        title: '📅 Nuevo Evento Creado',
+        message: `Se ha creado el evento "${name}". ¡Regístrate ahora!`,
+        type: 'general',
+        relatedEvent: event._id
+      });
+    } catch (notifError) {
+      console.error('Error sending notification:', notifError);
+    }
+    
     res.status(201).json(event);
   } catch (err) {
     res.status(500).json({ error: err.message });
@@ -69,6 +83,17 @@ exports.registerAttendance = async (req, res) => {
     if (!event.attendees.includes(req.user._id)) {
       event.attendees.push(req.user._id);
       await event.save();
+    }
+    
+    // Notificar a administradores
+    try {
+      await NotificationService.notifyAttendanceRegistered(
+        req.user._id,
+        event.name,
+        false
+      );
+    } catch (notifError) {
+      console.error('Error sending notification:', notifError);
     }
     
     res.json({ 
@@ -165,6 +190,17 @@ exports.registerAttendanceWithFacial = async (req, res) => {
     if (!event.attendees.includes(req.user._id)) {
       event.attendees.push(req.user._id);
       await event.save();
+    }
+    
+    // Notificar a administradores con verificación facial
+    try {
+      await NotificationService.notifyAttendanceRegistered(
+        req.user._id,
+        event.name,
+        true
+      );
+    } catch (notifError) {
+      console.error('Error sending notification:', notifError);
     }
     
     res.json({ 

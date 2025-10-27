@@ -1,3 +1,5 @@
+const NotificationService = require('../services/notificationService');
+
 // Login por imagen facial
 exports.loginFacial = async (req, res) => {
     const faceImage = req.file;
@@ -137,6 +139,13 @@ exports.registerUser = async (req, res) => {
 
         // Guardar en la base de datos
         await user.save();
+        
+        // Notificar a administradores sobre el nuevo usuario
+        try {
+            await NotificationService.notifyUserCreated(user.name, user._id);
+        } catch (notifError) {
+            console.error('Error sending notification:', notifError);
+        }
 
         res.status(201).json({ message: 'Usuario registrado exitosamente', user });
     } catch (error) {

@@ -1,4 +1,5 @@
 const Document = require('../models/Document');
+const NotificationService = require('../services/notificationService');
 
 // Subir un documento
 exports.uploadDocument = async (req, res) => {
@@ -13,6 +14,18 @@ exports.uploadDocument = async (req, res) => {
         });
 
         await document.save();
+        
+        // Notificar a todos los usuarios sobre el nuevo documento
+        try {
+            await NotificationService.notifyDocumentUploaded(
+                title,
+                document._id,
+                req.user ? req.user._id : null
+            );
+        } catch (notifError) {
+            console.error('Error sending notification:', notifError);
+        }
+        
         res.status(201).json({ message: 'Documento subido con éxito', document });
     } catch (error) {
         res.status(400).json({ error: error.message });

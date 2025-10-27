@@ -40,13 +40,19 @@ function Attendance() {
     fetch('http://localhost:5000/api/attendance/events', {
       headers: { 'Authorization': 'Bearer ' + localStorage.getItem('token') }
     })
-      .then(res => res.json())
+      .then(res => {
+        if (!res.ok) {
+          throw new Error('Failed to fetch');
+        }
+        return res.json();
+      })
       .then(data => {
-        setUserEvents(data);
+        setUserEvents(Array.isArray(data) ? data : []);
         setLoadingEvents(false);
       })
       .catch(err => {
         console.error('Error fetching user events:', err);
+        setUserEvents([]);
         setLoadingEvents(false);
       });
   };
@@ -55,13 +61,19 @@ function Attendance() {
     fetch('http://localhost:5000/api/events', {
       headers: { 'Authorization': 'Bearer ' + localStorage.getItem('token') }
     })
-      .then(res => res.json())
+      .then(res => {
+        if (!res.ok) {
+          throw new Error('Failed to fetch');
+        }
+        return res.json();
+      })
       .then(data => {
-        setAdminEvents(data);
+        setAdminEvents(Array.isArray(data) ? data : []);
         setLoadingAdminEvents(false);
       })
       .catch(err => {
         console.error('Error fetching admin events:', err);
+        setAdminEvents([]);
         setLoadingAdminEvents(false);
       });
   };

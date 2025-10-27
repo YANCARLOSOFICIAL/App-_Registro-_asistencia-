@@ -7,6 +7,7 @@ import Attendance from './pages/Attendance';
 import Documents from './pages/Documents';
 import AdminDashboard from './pages/AdminDashboard';
 import Events from './pages/Events';
+import NotificationBell from './components/notifications/NotificationBell';
 import './App.css';
 
 function App() {
@@ -127,6 +128,7 @@ function App() {
         </div>
 
         <div style={{ display: 'flex', gap: 'var(--spacing-md)', alignItems: 'center' }}>
+          <NotificationBell />
           <div className="nav-user">
             <span className="nav-user-name">{user.name}</span>
             <span className="nav-user-role">{user.role}</span>
