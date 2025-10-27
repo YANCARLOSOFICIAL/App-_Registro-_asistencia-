@@ -23,6 +23,7 @@ const attendanceRoutes = require('./routes/attendanceRoutes');
 const documentRoutes = require('./routes/documentRoutes');
 const eventRoutes = require('./routes/eventRoutes');
 const notificationRoutes = require('./routes/notificationRoutes');
+const reportRoutes = require('./routes/reportRoutes');
 
 
 // Usar las rutas
@@ -31,6 +32,7 @@ app.use('/api/attendance', attendanceRoutes);
 app.use('/api/documents', documentRoutes);
 app.use('/api/events', eventRoutes);
 app.use('/api/notifications', notificationRoutes);
+app.use('/api/reports', reportRoutes);
 
 // Configurar el puerto
 const PORT = process.env.PORT || 5000;

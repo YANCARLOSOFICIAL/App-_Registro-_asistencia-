@@ -23,6 +23,65 @@ function Attendance() {
     }
   }, [isAdmin]);
 
+  // Descargar reportes (Excel / PDF)
+  const downloadExcel = async () => {
+    try {
+      const token = localStorage.getItem('token');
+      const qs = new URLSearchParams();
+      if (startDate) qs.set('startDate', startDate);
+      if (endDate) qs.set('endDate', endDate);
+      const res = await fetch(`http://localhost:5000/api/reports/attendance.xlsx?${qs.toString()}`, {
+        method: 'GET',
+        headers: { 'Authorization': 'Bearer ' + token }
+      });
+      if (!res.ok) {
+        const err = await res.json().catch(() => ({}));
+        alert(err.message || 'Error al generar el reporte');
+        return;
+      }
+      const blob = await res.blob();
+      const url = window.URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = 'asistencias.xlsx';
+      document.body.appendChild(a);
+      a.click();
+      a.remove();
+      window.URL.revokeObjectURL(url);
+    } catch (err) {
+      alert('Error de red al descargar el reporte');
+    }
+  };
+
+  const downloadPdf = async () => {
+    try {
+      const token = localStorage.getItem('token');
+      const qs = new URLSearchParams();
+      if (startDate) qs.set('startDate', startDate);
+      if (endDate) qs.set('endDate', endDate);
+      const res = await fetch(`http://localhost:5000/api/reports/attendance.pdf?${qs.toString()}`, {
+        method: 'GET',
+        headers: { 'Authorization': 'Bearer ' + token }
+      });
+      if (!res.ok) {
+        const err = await res.json().catch(() => ({}));
+        alert(err.message || 'Error al generar el reporte');
+        return;
+      }
+      const blob = await res.blob();
+      const url = window.URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = 'asistencias.pdf';
+      document.body.appendChild(a);
+      a.click();
+      a.remove();
+      window.URL.revokeObjectURL(url);
+    } catch (err) {
+      alert('Error de red al descargar el reporte');
+    }
+  };
+
   const fetchAttendance = () => {
     fetch('http://localhost:5000/api/attendance')
       .then(res => res.json())
@@ -249,6 +308,10 @@ function Attendance() {
             <h3 style={{ margin: 0, marginBottom: 'var(--spacing-lg)', fontSize: 'var(--text-xl)' }}>
               📋 Asistentes por Evento
             </h3>
+              <div style={{ marginTop: '0.75rem', display: 'flex', gap: '0.5rem' }}>
+                <button className="btn" onClick={downloadExcel}>⬇️ Descargar Excel</button>
+                <button className="btn btn-outline" onClick={downloadPdf}>⬇️ Descargar PDF</button>
+              </div>
             
             {loadingAdminEvents ? (
               <div style={{ textAlign: 'center', padding: 'var(--spacing-lg)' }}>
