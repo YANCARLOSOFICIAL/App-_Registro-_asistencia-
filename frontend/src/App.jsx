@@ -1,4 +1,7 @@
-import React, { useState, useEffect } from 'react';
+import { Routes, Route, Navigate } from 'react-router-dom';
+import { Toaster } from 'react-hot-toast';
+
+// Pages
 import Login from './pages/Login';
 import Register from './pages/Register';
 import LoginFacial from './pages/LoginFacial';
@@ -7,158 +10,122 @@ import Attendance from './pages/Attendance';
 import Documents from './pages/Documents';
 import AdminDashboard from './pages/AdminDashboard';
 import Events from './pages/Events';
-import NotificationBell from './components/notifications/NotificationBell';
+
+// Components
+import Layout from './components/Layout';
+import ProtectedRoute from './components/ProtectedRoute';
+
 import './App.css';
 
 function App() {
-  const [user, setUser] = useState(null);
-  const [page, setPage] = useState('dashboard');
-  const [showRegister, setShowRegister] = useState(false);
-  const [showFacial, setShowFacial] = useState(false);
-
-  useEffect(() => {
-    const stored = localStorage.getItem('user');
-    if (stored) setUser(JSON.parse(stored));
-  }, []);
-
-  const handleLogout = () => {
-    localStorage.removeItem('token');
-    localStorage.removeItem('user');
-    setUser(null);
-    setPage('dashboard');
-  };
-
-  // Pantallas de autenticación
-  if (!user) {
-    if (showRegister) {
-      return (
-        <div className="container container-sm" style={{ paddingTop: '2rem' }}>
-          <Register 
-            onRegistered={() => setShowRegister(false)} 
-            onBack={() => setShowRegister(false)} 
-          />
-        </div>
-      );
-    }
-    
-    if (showFacial) {
-      return (
-        <div className="container container-sm" style={{ paddingTop: '2rem' }}>
-          <LoginFacial 
-            onLogin={setUser} 
-            onBack={() => setShowFacial(false)} 
-          />
-        </div>
-      );
-    }
-    
-    return (
-      <div className="container container-sm" style={{ paddingTop: '2rem' }}>
-        <Login onLogin={setUser} />
-        
-        <div style={{ 
-          display: 'flex', 
-          gap: 'var(--spacing-md)', 
-          marginTop: 'var(--spacing-xl)',
-          flexWrap: 'wrap'
-        }}>
-          <button 
-            onClick={() => setShowRegister(true)} 
-            className="btn btn-primary"
-            style={{ flex: 1 }}
-          >
-            ✨ Crear cuenta
-          </button>
-          <button 
-            onClick={() => setShowFacial(true)} 
-            className="btn btn-secondary"
-            style={{ flex: 1 }}
-          >
-            📷 Login facial
-          </button>
-        </div>
-      </div>
-    );
-  }
-
-  const isAdmin = user.role === 'admin';
+  const user = JSON.parse(localStorage.getItem('user') || 'null');
+  const isAuthenticated = !!user && !!localStorage.getItem('token');
 
   return (
-    <div className="container" style={{ paddingTop: 'var(--spacing-lg)', paddingBottom: 'var(--spacing-2xl)' }}>
-      {/* Navegación */}
-      <nav className="nav">
-        <div className="nav-brand">
-          <span style={{ fontSize: '1.5rem' }}>📊</span>
-          <span>Sistema de Asistencia</span>
-        </div>
+    <>
+      {/* Toast notifications */}
+      <Toaster
+        position="top-right"
+        reverseOrder={false}
+        gutter={8}
+        toastOptions={{
+          duration: 4000,
+          style: {
+            background: 'var(--bg-card)',
+            color: 'var(--text-primary)',
+            border: '1px solid var(--border-color)',
+            borderRadius: 'var(--radius-md)',
+            boxShadow: 'var(--shadow-lg)',
+          },
+          success: {
+            iconTheme: {
+              primary: 'var(--secondary)',
+              secondary: 'var(--bg-card)',
+            },
+          },
+          error: {
+            iconTheme: {
+              primary: 'var(--danger)',
+              secondary: 'var(--bg-card)',
+            },
+          },
+        }}
+      />
 
-        <div className="nav-links">
-          {isAdmin && (
-            <button 
-              onClick={() => setPage('dashboard')} 
-              className={`nav-link ${page === 'dashboard' ? 'active' : ''}`}
-            >
-              📈 Dashboard
-            </button>
-          )}
-          <button 
-            onClick={() => setPage('users')} 
-            className={`nav-link ${page === 'users' ? 'active' : ''}`}
-          >
-            👥 Usuarios
-          </button>
-          <button 
-            onClick={() => setPage('attendance')} 
-            className={`nav-link ${page === 'attendance' ? 'active' : ''}`}
-          >
-            ✓ Asistencias
-          </button>
-          <button 
-            onClick={() => setPage('documents')} 
-            className={`nav-link ${page === 'documents' ? 'active' : ''}`}
-          >
-            📄 Documentos
-          </button>
-          <button 
-            onClick={() => setPage('events')} 
-            className={`nav-link ${page === 'events' ? 'active' : ''}`}
-          >
-            📅 Eventos
-          </button>
-        </div>
+      <Routes>
+        {/* Public routes */}
+        <Route
+          path="/login"
+          element={
+            isAuthenticated ? (
+              <Navigate to={user?.role === 'admin' ? '/dashboard' : '/events'} replace />
+            ) : (
+              <Login />
+            )
+          }
+        />
+        <Route
+          path="/register"
+          element={
+            isAuthenticated ? (
+              <Navigate to={user?.role === 'admin' ? '/dashboard' : '/events'} replace />
+            ) : (
+              <Register />
+            )
+          }
+        />
+        <Route
+          path="/login-facial"
+          element={
+            isAuthenticated ? (
+              <Navigate to={user?.role === 'admin' ? '/dashboard' : '/events'} replace />
+            ) : (
+              <LoginFacial />
+            )
+          }
+        />
 
-        <div style={{ display: 'flex', gap: 'var(--spacing-md)', alignItems: 'center' }}>
-          <NotificationBell />
-          <div className="nav-user">
-            <span className="nav-user-name">{user.name}</span>
-            <span className="nav-user-role">{user.role}</span>
-          </div>
-          <button onClick={handleLogout} className="btn btn-danger btn-sm">
-            🚪 Salir
-          </button>
-        </div>
-      </nav>
+        {/* Protected routes with layout */}
+        <Route
+          element={
+            <ProtectedRoute>
+              <Layout />
+            </ProtectedRoute>
+          }
+        >
+          {/* Admin only routes */}
+          <Route
+            path="/dashboard"
+            element={
+              <ProtectedRoute requireAdmin>
+                <AdminDashboard />
+              </ProtectedRoute>
+            }
+          />
 
-      {/* Contenido principal */}
-      <main>
-        {isAdmin ? (
-          <>
-            {page === 'dashboard' && <AdminDashboard />}
-            {page === 'users' && <Users />}
-            {page === 'attendance' && <Attendance />}
-            {page === 'documents' && <Documents />}
-            {page === 'events' && <Events user={user} />}
-          </>
-        ) : (
-          <>
-            {page === 'users' && <Users userId={user.id} />}
-            {page === 'attendance' && <Attendance />}
-            {page === 'documents' && <Documents onlyDownload={true} />}
-            {page === 'events' && <Events user={user} />}
-          </>
-        )}
-      </main>
-    </div>
+          {/* Shared routes */}
+          <Route path="/users" element={<Users />} />
+          <Route path="/attendance" element={<Attendance />} />
+          <Route path="/documents" element={<Documents />} />
+          <Route path="/events" element={<Events />} />
+        </Route>
+
+        {/* Redirect root to appropriate page */}
+        <Route
+          path="/"
+          element={
+            isAuthenticated ? (
+              <Navigate to={user?.role === 'admin' ? '/dashboard' : '/events'} replace />
+            ) : (
+              <Navigate to="/login" replace />
+            )
+          }
+        />
+
+        {/* Catch all - redirect to home */}
+        <Route path="*" element={<Navigate to="/" replace />} />
+      </Routes>
+    </>
   );
 }
 

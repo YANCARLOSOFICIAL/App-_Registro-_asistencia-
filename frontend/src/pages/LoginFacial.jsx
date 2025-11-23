@@ -1,23 +1,24 @@
 import React, { useState } from 'react';
+import { useNavigate, Link } from 'react-router-dom';
+import toast from 'react-hot-toast';
 
-function LoginFacial({ onLogin, onBack }) {
+function LoginFacial() {
+  const navigate = useNavigate();
   const [faceImage, setFaceImage] = useState(null);
   const [preview, setPreview] = useState(null);
   const [loading, setLoading] = useState(false);
-  const [error, setError] = useState('');
 
   const handleImageChange = (e) => {
     const file = e.target.files[0];
     if (file) {
       // Validar tamaño
       if (file.size > 5 * 1024 * 1024) {
-        setError('La imagen no debe superar los 5MB');
+        toast.error('La imagen no debe superar los 5MB');
         return;
       }
-      
+
       setFaceImage(file);
-      setError('');
-      
+
       // Crear preview
       const reader = new FileReader();
       reader.onloadend = () => {
@@ -30,36 +31,36 @@ function LoginFacial({ onLogin, onBack }) {
   const handleSubmit = async (e) => {
     e.preventDefault();
     setLoading(true);
-    setError('');
-    
+
     if (!faceImage) {
-      setError('Debes seleccionar una imagen');
+      toast.error('Debes seleccionar una imagen');
       setLoading(false);
       return;
     }
-    
+
     const formData = new FormData();
     formData.append('faceImage', faceImage);
-    
+
     try {
       const res = await fetch('http://localhost:5000/api/users/login-facial', {
         method: 'POST',
         body: formData,
       });
-      
+
       const data = await res.json();
-      
+
       if (res.ok && data.token) {
         localStorage.setItem('token', data.token);
         localStorage.setItem('user', JSON.stringify(data.user));
-        onLogin && onLogin(data.user);
+        toast.success(`Bienvenido, ${data.user.name}!`);
+        navigate(data.user.role === 'admin' ? '/dashboard' : '/events');
       } else {
-        setError(data.error || 'No se encontró ningún usuario con esta imagen');
+        toast.error(data.error || 'No se encontró ningún usuario con esta imagen');
       }
     } catch (err) {
-      setError('Error de conexión. Verifica tu internet.');
+      toast.error('Error de conexión. Verifica tu internet.');
     }
-    
+
     setLoading(false);
   };
 
@@ -125,26 +126,18 @@ function LoginFacial({ onLogin, onBack }) {
           </div>
         )}
 
-        {error && (
-          <div className="alert alert-error">
-            ⚠️ {error}
-          </div>
-        )}
-
-        <div style={{ 
-          display: 'flex', 
-          gap: 'var(--spacing-md)', 
-          marginTop: 'var(--spacing-lg)' 
+        <div style={{
+          display: 'flex',
+          gap: 'var(--spacing-md)',
+          marginTop: 'var(--spacing-lg)'
         }}>
-          <button
-            type="button"
-            onClick={onBack}
+          <Link
+            to="/login"
             className="btn btn-outline"
-            style={{ flex: 1 }}
-            disabled={loading}
+            style={{ flex: 1, textDecoration: 'none' }}
           >
             ← Volver
-          </button>
+          </Link>
           <button
             type="submit"
             className="btn btn-secondary"

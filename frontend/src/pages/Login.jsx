@@ -1,36 +1,38 @@
 import React, { useState } from 'react';
+import { useNavigate, Link } from 'react-router-dom';
+import toast from 'react-hot-toast';
 
-function Login({ onLogin }) {
+function Login() {
+  const navigate = useNavigate();
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [loading, setLoading] = useState(false);
-  const [error, setError] = useState('');
 
   const handleSubmit = async (e) => {
     e.preventDefault();
     setLoading(true);
-    setError('');
-    
+
     try {
       const res = await fetch('http://localhost:5000/api/users/login', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ email, password })
       });
-      
+
       const data = await res.json();
-      
+
       if (res.ok && data.token) {
         localStorage.setItem('token', data.token);
         localStorage.setItem('user', JSON.stringify(data.user));
-        onLogin && onLogin(data.user);
+        toast.success(`Bienvenido, ${data.user.name}!`);
+        navigate(data.user.role === 'admin' ? '/dashboard' : '/events');
       } else {
-        setError(data.error || 'Credenciales incorrectas');
+        toast.error(data.error || 'Credenciales incorrectas');
       }
     } catch (err) {
-      setError('Error de conexión. Verifica tu internet.');
+      toast.error('Error de conexión. Verifica tu internet.');
     }
-    
+
     setLoading(false);
   };
 
@@ -75,14 +77,8 @@ function Login({ onLogin }) {
           />
         </div>
 
-        {error && (
-          <div className="alert alert-error">
-            ⚠️ {error}
-          </div>
-        )}
-
-        <button 
-          type="submit" 
+        <button
+          type="submit"
           className="form-submit"
           disabled={loading}
         >
@@ -100,9 +96,27 @@ function Login({ onLogin }) {
       </form>
 
       <div className="form-footer">
-        <p style={{ margin: 0, color: 'var(--text-tertiary)' }}>
-          ¿Primera vez aquí? Usa los botones de abajo para registrarte
-        </p>
+        <div style={{
+          display: 'flex',
+          gap: 'var(--spacing-md)',
+          marginTop: 'var(--spacing-lg)',
+          flexWrap: 'wrap'
+        }}>
+          <Link
+            to="/register"
+            className="btn btn-primary"
+            style={{ flex: 1, textDecoration: 'none' }}
+          >
+            ✨ Crear cuenta
+          </Link>
+          <Link
+            to="/login-facial"
+            className="btn btn-secondary"
+            style={{ flex: 1, textDecoration: 'none' }}
+          >
+            📷 Login facial
+          </Link>
+        </div>
       </div>
     </div>
   );

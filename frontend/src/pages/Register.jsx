@@ -1,6 +1,9 @@
 import React, { useState } from 'react';
+import { useNavigate, Link } from 'react-router-dom';
+import toast from 'react-hot-toast';
 
-function Register({ onRegistered, onBack }) {
+function Register() {
+  const navigate = useNavigate();
   const [name, setName] = useState('');
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
@@ -8,20 +11,18 @@ function Register({ onRegistered, onBack }) {
   const [faceImage, setFaceImage] = useState(null);
   const [preview, setPreview] = useState(null);
   const [loading, setLoading] = useState(false);
-  const [error, setError] = useState('');
-  const [success, setSuccess] = useState('');
 
   const handleImageChange = (e) => {
     const file = e.target.files[0];
     if (file) {
       // Validar tamaño
       if (file.size > 5 * 1024 * 1024) {
-        setError('La imagen no debe superar los 5MB');
+        toast.error('La imagen no debe superar los 5MB');
         return;
       }
-      
+
       setFaceImage(file);
-      
+
       // Crear preview
       const reader = new FileReader();
       reader.onloadend = () => {
@@ -34,61 +35,52 @@ function Register({ onRegistered, onBack }) {
   const handleSubmit = async (e) => {
     e.preventDefault();
     setLoading(true);
-    setError('');
-    setSuccess('');
-    
+
     // Validaciones
     if (!/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(email)) {
-      setError('Email inválido');
+      toast.error('Email inválido');
       setLoading(false);
       return;
     }
-    
+
     if (password.length < 6) {
-      setError('La contraseña debe tener al menos 6 caracteres');
+      toast.error('La contraseña debe tener al menos 6 caracteres');
       setLoading(false);
       return;
     }
-    
+
     if (password !== confirmPassword) {
-      setError('Las contraseñas no coinciden');
+      toast.error('Las contraseñas no coinciden');
       setLoading(false);
       return;
     }
-    
+
     const formData = new FormData();
     formData.append('name', name);
     formData.append('email', email);
     formData.append('password', password);
     if (faceImage) formData.append('faceImage', faceImage);
-    
+
     try {
       const res = await fetch('http://localhost:5000/api/users/register', {
         method: 'POST',
         body: formData,
       });
-      
+
       const data = await res.json();
-      
+
       if (res.ok) {
-        setSuccess('✓ Usuario registrado exitosamente. Redirigiendo...');
-        setName('');
-        setEmail('');
-        setPassword('');
-        setConfirmPassword('');
-        setFaceImage(null);
-        setPreview(null);
-        
+        toast.success('Usuario registrado exitosamente!');
         setTimeout(() => {
-          onRegistered && onRegistered();
-        }, 2000);
+          navigate('/login');
+        }, 1500);
       } else {
-        setError(data.error || 'Error al registrar usuario');
+        toast.error(data.error || 'Error al registrar usuario');
       }
     } catch (err) {
-      setError('Error de conexión. Verifica tu internet.');
+      toast.error('Error de conexión. Verifica tu internet.');
     }
-    
+
     setLoading(false);
   };
 
@@ -211,32 +203,18 @@ function Register({ onRegistered, onBack }) {
           </div>
         )}
 
-        {error && (
-          <div className="alert alert-error">
-            ⚠️ {error}
-          </div>
-        )}
-
-        {success && (
-          <div className="alert alert-success">
-            {success}
-          </div>
-        )}
-
-        <div style={{ 
-          display: 'flex', 
-          gap: 'var(--spacing-md)', 
-          marginTop: 'var(--spacing-lg)' 
+        <div style={{
+          display: 'flex',
+          gap: 'var(--spacing-md)',
+          marginTop: 'var(--spacing-lg)'
         }}>
-          <button
-            type="button"
-            onClick={onBack}
+          <Link
+            to="/login"
             className="btn btn-outline"
-            style={{ flex: 1 }}
-            disabled={loading}
+            style={{ flex: 1, textDecoration: 'none' }}
           >
             ← Volver
-          </button>
+          </Link>
           <button
             type="submit"
             className="btn btn-primary"
