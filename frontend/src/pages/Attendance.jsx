@@ -1,4 +1,6 @@
 import React, { useEffect, useState } from 'react';
+import toast from 'react-hot-toast';
+import { SkeletonTable } from '../components/Skeleton';
 
 function Attendance() {
   const [attendance, setAttendance] = useState([]);
@@ -36,9 +38,10 @@ function Attendance() {
       });
       if (!res.ok) {
         const err = await res.json().catch(() => ({}));
-        alert(err.message || 'Error al generar el reporte');
+        toast.error(err.message || 'Error al generar el reporte');
         return;
       }
+      toast.success('Reporte Excel descargado exitosamente');
       const blob = await res.blob();
       const url = window.URL.createObjectURL(blob);
       const a = document.createElement('a');
@@ -49,7 +52,7 @@ function Attendance() {
       a.remove();
       window.URL.revokeObjectURL(url);
     } catch (err) {
-      alert('Error de red al descargar el reporte');
+      toast.error('Error de red al descargar el reporte');
     }
   };
 
@@ -65,9 +68,10 @@ function Attendance() {
       });
       if (!res.ok) {
         const err = await res.json().catch(() => ({}));
-        alert(err.message || 'Error al generar el reporte');
+        toast.error(err.message || 'Error al generar el reporte');
         return;
       }
+      toast.success('Reporte PDF descargado exitosamente');
       const blob = await res.blob();
       const url = window.URL.createObjectURL(blob);
       const a = document.createElement('a');
@@ -78,7 +82,7 @@ function Attendance() {
       a.remove();
       window.URL.revokeObjectURL(url);
     } catch (err) {
-      alert('Error de red al descargar el reporte');
+      toast.error('Error de red al descargar el reporte');
     }
   };
 
@@ -163,9 +167,16 @@ function Attendance() {
 
   if (loading) {
     return (
-      <div className="loading-container">
-        <div className="spinner spinner-lg"></div>
-        <p className="loading-text">Cargando asistencias...</p>
+      <div>
+        <div style={{
+          display: 'flex',
+          justifyContent: 'space-between',
+          alignItems: 'center',
+          marginBottom: 'var(--spacing-xl)'
+        }}>
+          <h2>✓ Gestión de Asistencias</h2>
+        </div>
+        <SkeletonTable rows={8} columns={5} />
       </div>
     );
   }

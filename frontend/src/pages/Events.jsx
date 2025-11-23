@@ -1,8 +1,11 @@
 import React, { useEffect, useState } from 'react';
+import toast from 'react-hot-toast';
 import EventForm from '../components/EventForm';
 import EventItem from './EventItem';
+import { SkeletonCard } from '../components/Skeleton';
 
-const Events = ({ user }) => {
+const Events = () => {
+  const user = JSON.parse(localStorage.getItem('user') || '{}');
   const [events, setEvents] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
@@ -49,10 +52,10 @@ const Events = ({ user }) => {
       })
       .then(newEvent => {
         setEvents([newEvent, ...events]);
-        alert('Evento creado correctamente');
+        toast.success('Evento creado correctamente');
       })
       .catch(err => {
-        alert('Error al crear evento: ' + err.message);
+        toast.error('Error al crear evento: ' + err.message);
       });
   };
 
@@ -74,17 +77,24 @@ const Events = ({ user }) => {
 
   if (loading) {
     return (
-      <div style={{ textAlign: 'center', padding: '2rem' }}>
-        <div style={{ 
-          border: '4px solid #f3f3f3',
-          borderTop: '4px solid #646cff',
-          borderRadius: '50%',
-          width: '40px',
-          height: '40px',
-          animation: 'spin 1s linear infinite',
-          margin: '0 auto'
-        }}></div>
-        <p style={{ marginTop: '1rem', color: '#aaa' }}>Cargando eventos...</p>
+      <div>
+        <div style={{
+          display: 'flex',
+          justifyContent: 'space-between',
+          alignItems: 'center',
+          marginBottom: 'var(--spacing-xl)'
+        }}>
+          <h2>📅 Eventos</h2>
+        </div>
+        <div style={{
+          display: 'grid',
+          gridTemplateColumns: 'repeat(auto-fill, minmax(320px, 1fr))',
+          gap: 'var(--spacing-lg)'
+        }}>
+          {[1, 2, 3, 4].map((i) => (
+            <SkeletonCard key={i} />
+          ))}
+        </div>
       </div>
     );
   }

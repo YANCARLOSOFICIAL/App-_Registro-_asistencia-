@@ -4,6 +4,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import NotificationBell from './notifications/NotificationBell';
 import ThemeToggle from './ThemeToggle';
 import Breadcrumbs from './Breadcrumbs';
+import SearchBar from './SearchBar';
 import './Layout.css';
 
 const Layout = () => {
@@ -90,6 +91,7 @@ const Layout = () => {
         </div>
 
         <div className="nav-actions">
+          <SearchBar />
           <ThemeToggle />
           <NotificationBell />
           <div className="nav-user">

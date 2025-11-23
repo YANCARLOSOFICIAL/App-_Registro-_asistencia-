@@ -1,5 +1,8 @@
 import React, { useEffect, useState } from "react";
+import toast from 'react-hot-toast';
 import UserForm from "../components/UserForm";
+import ConfirmModal from "../components/ConfirmModal";
+import { SkeletonTable } from "../components/Skeleton";
 
 function Users() {
   const [user, setUser] = useState(null);
@@ -11,6 +14,8 @@ function Users() {
   const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState("");
   const [filterRole, setFilterRole] = useState("all");
+  const [deleteModal, setDeleteModal] = useState({ isOpen: false, userId: null, userName: '' });
+  const [deleting, setDeleting] = useState(false);
 
   const isAdmin = user?.role === 'admin';
 
@@ -49,26 +54,37 @@ function Users() {
     if (res.ok) {
       const data = await res.json();
       setUsers(users => users.map(u => u._id === editId ? data.user : u));
+      toast.success('Usuario actualizado exitosamente');
       cancelEdit();
     } else {
-      alert('Error al editar usuario');
+      toast.error('Error al editar usuario');
     }
   };
 
-  const handleDelete = async (id) => {
-    if (!window.confirm('¿Seguro que deseas eliminar este usuario?')) return;
-    
+  const openDeleteModal = (userId, userName) => {
+    setDeleteModal({ isOpen: true, userId, userName });
+  };
+
+  const closeDeleteModal = () => {
+    setDeleteModal({ isOpen: false, userId: null, userName: '' });
+  };
+
+  const handleDelete = async () => {
+    setDeleting(true);
     const token = localStorage.getItem('token');
-    const res = await fetch(`http://localhost:5000/api/users/${id}`, {
+    const res = await fetch(`http://localhost:5000/api/users/${deleteModal.userId}`, {
       method: 'DELETE',
       headers: token ? { 'Authorization': `Bearer ${token}` } : {}
     });
-    
+
     if (res.ok) {
-      setUsers(users => users.filter(u => u._id !== id));
+      setUsers(users => users.filter(u => u._id !== deleteModal.userId));
+      toast.success('Usuario eliminado exitosamente');
+      closeDeleteModal();
     } else {
-      alert('Error al eliminar usuario');
+      toast.error('Error al eliminar usuario');
     }
+    setDeleting(false);
   };
 
   useEffect(() => {
@@ -104,9 +120,16 @@ function Users() {
 
   if (loading) {
     return (
-      <div className="loading-container">
-        <div className="spinner spinner-lg"></div>
-        <p className="loading-text">Cargando usuarios...</p>
+      <div>
+        <div style={{
+          display: 'flex',
+          justifyContent: 'space-between',
+          alignItems: 'center',
+          marginBottom: 'var(--spacing-xl)'
+        }}>
+          <h2>👥 Gestión de Usuarios</h2>
+        </div>
+        <SkeletonTable rows={5} columns={4} />
       </div>
     );
   }
@@ -357,8 +380,8 @@ function Users() {
                           >
                             ✏️ Editar
                           </button>
-                          <button 
-                            onClick={() => handleDelete(u._id)}
+                          <button
+                            onClick={() => openDeleteModal(u._id, u.name)}
                             className="btn btn-danger btn-sm"
                           >
                             🗑️ Eliminar
@@ -382,8 +405,8 @@ function Users() {
         borderRadius: 'var(--radius-lg)',
         border: '1px solid var(--border-color-dark)'
       }}>
-        <h4 style={{ 
-          fontSize: 'var(--text-base)', 
+        <h4 style={{
+          fontSize: 'var(--text-base)',
           marginBottom: 'var(--spacing-md)',
           color: 'var(--text-primary)'
         }}>
@@ -403,6 +426,19 @@ function Users() {
           <li>• Puedes editar el rol de cualquier usuario</li>
         </ul>
       </div>
+
+      {/* Modal de confirmación de eliminación */}
+      <ConfirmModal
+        isOpen={deleteModal.isOpen}
+        onClose={closeDeleteModal}
+        onConfirm={handleDelete}
+        title="Eliminar Usuario"
+        message={`¿Estás seguro de que deseas eliminar a ${deleteModal.userName}? Esta acción no se puede deshacer.`}
+        confirmText="Eliminar"
+        cancelText="Cancelar"
+        variant="danger"
+        loading={deleting}
+      />
     </div>
   );
 }

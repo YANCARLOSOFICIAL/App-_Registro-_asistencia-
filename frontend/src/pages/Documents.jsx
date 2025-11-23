@@ -1,4 +1,5 @@
 import React, { useEffect, useState } from 'react';
+import { SkeletonCard } from '../components/Skeleton';
 
 function Documents({ onlyDownload = false }) {
   const [documents, setDocuments] = useState([]);
@@ -112,9 +113,24 @@ function Documents({ onlyDownload = false }) {
 
   if (loading) {
     return (
-      <div className="loading-container">
-        <div className="spinner spinner-lg"></div>
-        <p className="loading-text">Cargando documentos...</p>
+      <div>
+        <div style={{
+          display: 'flex',
+          justifyContent: 'space-between',
+          alignItems: 'center',
+          marginBottom: 'var(--spacing-xl)'
+        }}>
+          <h2>📄 Documentos</h2>
+        </div>
+        <div style={{
+          display: 'grid',
+          gridTemplateColumns: 'repeat(auto-fill, minmax(280px, 1fr))',
+          gap: 'var(--spacing-lg)'
+        }}>
+          {[1, 2, 3, 4, 5, 6].map((i) => (
+            <SkeletonCard key={i} />
+          ))}
+        </div>
       </div>
     );
   }
