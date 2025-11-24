@@ -16,8 +16,9 @@ exports.createEvent = async (req, res) => {
       return res.status(400).json({ error: 'Nombre y fecha son requeridos' });
     }
 
-    // Validar ubicación si se requiere verificación de ubicación
-    if (requiresLocation !== false && (!location || !location.coordinates || location.coordinates.length !== 2)) {
+    // Validar ubicación solo si se requiere verificación de ubicación
+    const locationRequired = requiresLocation !== false;
+    if (locationRequired && (!location || !location.coordinates || location.coordinates.length !== 2)) {
       return res.status(400).json({
         error: 'Ubicación requerida. Proporciona coordenadas [longitude, latitude]'
       });
@@ -29,7 +30,6 @@ exports.createEvent = async (req, res) => {
       date,
       endDate,
       createdBy: req.user._id,
-      location: location || { coordinates: [0, 0] },
       locationName,
       allowedRadius: allowedRadius || 100,
       requiresFacialRecognition: requiresFacialRecognition || false,
@@ -42,6 +42,14 @@ exports.createEvent = async (req, res) => {
         secret: QRService.generateSecret()
       }
     });
+
+    // Solo agregar ubicación si se proporciona
+    if (location && location.coordinates && location.coordinates.length === 2) {
+      event.location = {
+        type: 'Point',
+        coordinates: location.coordinates
+      };
+    }
 
     // Generar el primer código QR
     if (event.qrConfig.enabled) {
@@ -105,11 +113,15 @@ exports.registerAttendance = async (req, res) => {
       return res.status(400).json({ error: 'Ya registraste asistencia a este evento' });
     }
     
-    // Crear registro de asistencia
+    // Crear registro de asistencia (método simple, sin verificaciones)
     const attendance = new Attendance({
       user: req.user._id,
       event: event._id,
-      isVerifiedByFacialRecognition: false
+      checkIn: new Date(),
+      isVerifiedByFacialRecognition: false,
+      isLocationVerified: false,
+      isQRCodeVerified: false,
+      isValidAttendance: true // Método antiguo - se considera válido por compatibilidad
     });
     await attendance.save();
     
@@ -196,7 +208,11 @@ exports.registerAttendanceWithFacial = async (req, res) => {
       const attendance = new Attendance({
         user: req.user._id,
         event: event._id,
-        isVerifiedByFacialRecognition: false
+        checkIn: new Date(),
+        isVerifiedByFacialRecognition: false,
+        isLocationVerified: false,
+        isQRCodeVerified: false,
+        isValidAttendance: false // Falló la verificación facial
       });
       await attendance.save();
       
@@ -216,7 +232,11 @@ exports.registerAttendanceWithFacial = async (req, res) => {
     const attendance = new Attendance({
       user: req.user._id,
       event: event._id,
-      isVerifiedByFacialRecognition: true
+      checkIn: new Date(),
+      isVerifiedByFacialRecognition: true,
+      isLocationVerified: false,
+      isQRCodeVerified: false,
+      isValidAttendance: true // Método antiguo con verificación facial exitosa
     });
     await attendance.save();
     

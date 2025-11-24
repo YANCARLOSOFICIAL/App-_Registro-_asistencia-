@@ -14,9 +14,9 @@ const AttendanceSchema = new mongoose.Schema({
     isLocationVerified: { type: Boolean, default: false },
     isQRCodeVerified: { type: Boolean, default: false },
 
-    // Datos de geolocalización
+    // Datos de geolocalización (opcional)
     location: {
-        type: { type: String, enum: ['Point'], default: 'Point' },
+        type: { type: String, enum: ['Point'] },
         coordinates: { type: [Number] } // [longitude, latitude]
     },
     distanceFromEvent: { type: Number }, // Distancia en metros

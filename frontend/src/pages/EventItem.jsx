@@ -1,13 +1,21 @@
 import React, { useState } from 'react';
+import AttendanceVerified from '../components/AttendanceVerified';
+import EventQRDisplay from '../components/EventQRDisplay';
 
 const EventItem = ({ event }) => {
   const [showFacialForm, setShowFacialForm] = useState(false);
+  const [showVerifiedForm, setShowVerifiedForm] = useState(false);
+  const [showQRDisplay, setShowQRDisplay] = useState(false);
   const [faceImage, setFaceImage] = useState(null);
   const [preview, setPreview] = useState(null);
   const [verifying, setVerifying] = useState(false);
   const [verifyError, setVerifyError] = useState("");
   const [verifySuccess, setVerifySuccess] = useState("");
   const [registering, setRegistering] = useState(false);
+
+  const user = JSON.parse(localStorage.getItem('user') || '{}');
+  const isAdmin = user?.role === 'admin';
+  const isCreator = event.createdBy?._id === user?._id || event.createdBy === user?._id;
 
   // Registrar asistencia simple (sin foto)
   const handleAttend = async () => {
@@ -180,46 +188,115 @@ const EventItem = ({ event }) => {
       {/* Botones de acción */}
       {!isPastEvent && (
         <div style={{ display: 'flex', gap: '0.5rem', flexWrap: 'wrap' }}>
-          <button 
-            onClick={handleAttend} 
-            disabled={registering}
-            style={{
-              background: '#646cff',
-              color: '#fff',
-              border: 'none',
-              padding: '0.7em 1.2em',
-              borderRadius: '6px',
-              cursor: registering ? 'not-allowed' : 'pointer',
-              fontWeight: 'bold',
-              opacity: registering ? 0.6 : 1
-            }}
-          >
-            {registering ? 'Registrando...' : '✓ Registrar asistencia'}
-          </button>
-          
-          <button 
-            onClick={() => {
-              setShowFacialForm(!showFacialForm);
-              if (!showFacialForm) {
-                setVerifyError("");
-                setVerifySuccess("");
-              }
-            }}
-            style={{
-              background: showFacialForm ? '#e74c3c' : '#27ae60',
-              color: '#fff',
-              border: 'none',
-              padding: '0.7em 1.2em',
-              borderRadius: '6px',
-              cursor: 'pointer',
-              fontWeight: 'bold'
-            }}
-          >
-            {showFacialForm ? '✕ Cancelar' : '📷 Verificar con foto'}
-          </button>
+          {/* Solo para usuarios normales */}
+          {!isAdmin && !isCreator && (
+            <>
+              <button
+                onClick={handleAttend}
+                disabled={registering || showVerifiedForm}
+                style={{
+                  background: '#646cff',
+                  color: '#fff',
+                  border: 'none',
+                  padding: '0.7em 1.2em',
+                  borderRadius: '6px',
+                  cursor: (registering || showVerifiedForm) ? 'not-allowed' : 'pointer',
+                  fontWeight: 'bold',
+                  opacity: (registering || showVerifiedForm) ? 0.6 : 1
+                }}
+              >
+                {registering ? 'Registrando...' : '✓ Asistencia simple'}
+              </button>
+
+              <button
+                onClick={() => {
+                  setShowFacialForm(!showFacialForm);
+                  setShowVerifiedForm(false);
+                  if (!showFacialForm) {
+                    setVerifyError("");
+                    setVerifySuccess("");
+                  }
+                }}
+                disabled={showVerifiedForm}
+                style={{
+                  background: showFacialForm ? '#e74c3c' : '#27ae60',
+                  color: '#fff',
+                  border: 'none',
+                  padding: '0.7em 1.2em',
+                  borderRadius: '6px',
+                  cursor: showVerifiedForm ? 'not-allowed' : 'pointer',
+                  fontWeight: 'bold',
+                  opacity: showVerifiedForm ? 0.6 : 1
+                }}
+              >
+                {showFacialForm ? '✕ Cancelar' : '📷 Verificar con foto'}
+              </button>
+
+              <button
+                onClick={() => {
+                  setShowVerifiedForm(!showVerifiedForm);
+                  setShowFacialForm(false);
+                  if (!showVerifiedForm) {
+                    setVerifyError("");
+                    setVerifySuccess("");
+                  }
+                }}
+                style={{
+                  background: showVerifiedForm ? '#e74c3c' : '#f39c12',
+                  color: '#fff',
+                  border: 'none',
+                  padding: '0.7em 1.2em',
+                  borderRadius: '6px',
+                  cursor: 'pointer',
+                  fontWeight: 'bold'
+                }}
+              >
+                {showVerifiedForm ? '✕ Cancelar' : '🔒 Asistencia verificada (QR + GPS)'}
+              </button>
+            </>
+          )}
+
+          {/* Solo para admin o creador del evento */}
+          {(isAdmin || isCreator) && (
+            <button
+              onClick={() => setShowQRDisplay(!showQRDisplay)}
+              style={{
+                background: showQRDisplay ? '#e74c3c' : '#9b59b6',
+                color: '#fff',
+                border: 'none',
+                padding: '0.7em 1.2em',
+                borderRadius: '6px',
+                cursor: 'pointer',
+                fontWeight: 'bold'
+              }}
+            >
+              {showQRDisplay ? '✕ Ocultar QR' : '📱 Ver código QR del evento'}
+            </button>
+          )}
         </div>
       )}
       
+      {/* Componente de asistencia verificada (QR + GPS) */}
+      {showVerifiedForm && !isPastEvent && (
+        <div style={{ marginTop: '1rem' }}>
+          <AttendanceVerified
+            event={event}
+            onSuccess={(data) => {
+              setVerifySuccess(`✓ ${data.message}`);
+              setShowVerifiedForm(false);
+              setTimeout(() => setVerifySuccess(""), 5000);
+            }}
+          />
+        </div>
+      )}
+
+      {/* Mostrar código QR del evento (solo admin/creador) */}
+      {showQRDisplay && !isPastEvent && (isAdmin || isCreator) && (
+        <div style={{ marginTop: '1rem' }}>
+          <EventQRDisplay eventId={event._id} />
+        </div>
+      )}
+
       {/* Formulario de verificación facial */}
       {showFacialForm && !isPastEvent && (
         <form 

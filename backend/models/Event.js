@@ -8,10 +8,10 @@ const eventSchema = new mongoose.Schema({
   createdBy: { type: mongoose.Schema.Types.ObjectId, ref: 'User', required: true },
   attendees: [{ type: mongoose.Schema.Types.ObjectId, ref: 'User' }],
 
-  // Ubicación del evento
+  // Ubicación del evento (opcional para compatibilidad con eventos antiguos)
   location: {
-    type: { type: String, enum: ['Point'], default: 'Point' },
-    coordinates: { type: [Number], required: true } // [longitude, latitude]
+    type: { type: String, enum: ['Point'] },
+    coordinates: { type: [Number] } // [longitude, latitude]
   },
   locationName: { type: String }, // Nombre legible del lugar (ej: "Auditorio Principal")
   allowedRadius: { type: Number, default: 100 }, // Radio permitido en metros (default 100m)
