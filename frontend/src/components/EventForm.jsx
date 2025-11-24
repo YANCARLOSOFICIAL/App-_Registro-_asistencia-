@@ -5,6 +5,22 @@ const EventForm = ({ onCreate }) => {
   const [description, setDescription] = useState('');
   const [date, setDate] = useState('');
   const [time, setTime] = useState('');
+  const [endDate, setEndDate] = useState('');
+  const [endTime, setEndTime] = useState('');
+
+  // Campos de ubicación
+  const [locationName, setLocationName] = useState('');
+  const [latitude, setLatitude] = useState('');
+  const [longitude, setLongitude] = useState('');
+  const [allowedRadius, setAllowedRadius] = useState('100');
+  const [capturingLocation, setCapturingLocation] = useState(false);
+
+  // Configuración de verificación
+  const [requiresQRCode, setRequiresQRCode] = useState(true);
+  const [requiresLocation, setRequiresLocation] = useState(true);
+  const [requiresFacialRecognition, setRequiresFacialRecognition] = useState(false);
+  const [minimumStayMinutes, setMinimumStayMinutes] = useState('0');
+
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
   const [showForm, setShowForm] = useState(false);
@@ -14,7 +30,44 @@ const EventForm = ({ onCreate }) => {
     setDescription('');
     setDate('');
     setTime('');
+    setEndDate('');
+    setEndTime('');
+    setLocationName('');
+    setLatitude('');
+    setLongitude('');
+    setAllowedRadius('100');
+    setRequiresQRCode(true);
+    setRequiresLocation(true);
+    setRequiresFacialRecognition(false);
+    setMinimumStayMinutes('0');
     setError('');
+  };
+
+  const captureCurrentLocation = () => {
+    setCapturingLocation(true);
+    setError('');
+
+    if ('geolocation' in navigator) {
+      navigator.geolocation.getCurrentPosition(
+        (position) => {
+          setLatitude(position.coords.latitude.toString());
+          setLongitude(position.coords.longitude.toString());
+          setCapturingLocation(false);
+        },
+        (error) => {
+          setError('No se pudo obtener la ubicación: ' + error.message);
+          setCapturingLocation(false);
+        },
+        {
+          enableHighAccuracy: true,
+          timeout: 10000,
+          maximumAge: 0
+        }
+      );
+    } else {
+      setError('Tu navegador no soporta geolocalización');
+      setCapturingLocation(false);
+    }
   };
 
   const handleSubmit = async (e) => {
@@ -35,16 +88,40 @@ const EventForm = ({ onCreate }) => {
       return;
     }
 
+    if (requiresLocation && (!latitude || !longitude)) {
+      setError('La ubicación es obligatoria cuando se requiere verificación de ubicación');
+      setLoading(false);
+      return;
+    }
+
     // Combinar fecha y hora
     let dateTimeString = date;
     if (time) {
       dateTimeString = `${date}T${time}`;
     }
 
+    let endDateTimeString = null;
+    if (endDate) {
+      endDateTimeString = endDate;
+      if (endTime) {
+        endDateTimeString = `${endDate}T${endTime}`;
+      }
+    }
+
     const eventData = {
       name: name.trim(),
       description: description.trim(),
-      date: new Date(dateTimeString).toISOString()
+      date: new Date(dateTimeString).toISOString(),
+      endDate: endDateTimeString ? new Date(endDateTimeString).toISOString() : null,
+      location: {
+        coordinates: [parseFloat(longitude), parseFloat(latitude)]
+      },
+      locationName: locationName.trim(),
+      allowedRadius: parseInt(allowedRadius) || 100,
+      requiresQRCode,
+      requiresLocation,
+      requiresFacialRecognition,
+      minimumStayMinutes: parseInt(minimumStayMinutes) || 0
     };
 
     try {
@@ -147,7 +224,7 @@ const EventForm = ({ onCreate }) => {
 
           <div className="form-group">
             <label className="form-label">
-              🕐 Hora (opcional)
+              🕐 Hora inicio
             </label>
             <input
               type="time"
@@ -155,6 +232,186 @@ const EventForm = ({ onCreate }) => {
               value={time}
               onChange={e => setTime(e.target.value)}
             />
+          </div>
+        </div>
+
+        <div style={{
+          display: 'grid',
+          gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))',
+          gap: 'var(--spacing-md)',
+          marginBottom: 'var(--spacing-md)'
+        }}>
+          <div className="form-group">
+            <label className="form-label">
+              📅 Fecha fin (opcional)
+            </label>
+            <input
+              type="date"
+              className="form-input"
+              value={endDate}
+              onChange={e => setEndDate(e.target.value)}
+              min={date || today}
+            />
+          </div>
+
+          <div className="form-group">
+            <label className="form-label">
+              🕐 Hora fin
+            </label>
+            <input
+              type="time"
+              className="form-input"
+              value={endTime}
+              onChange={e => setEndTime(e.target.value)}
+            />
+          </div>
+        </div>
+
+        {/* Ubicación del evento */}
+        <div style={{
+          padding: 'var(--spacing-md)',
+          background: 'var(--bg-secondary)',
+          borderRadius: 'var(--radius-md)',
+          marginBottom: 'var(--spacing-md)',
+          border: requiresLocation ? '2px solid var(--primary-color)' : '1px solid var(--border-color)'
+        }}>
+          <h4 style={{ marginTop: 0, marginBottom: 'var(--spacing-md)' }}>
+            📍 Ubicación del Evento
+            {requiresLocation && <span className="required"> *</span>}
+          </h4>
+
+          <div className="form-group">
+            <label className="form-label">
+              Nombre del lugar
+            </label>
+            <input
+              type="text"
+              className="form-input"
+              placeholder="Ej: Auditorio Principal, Sala de Conferencias..."
+              value={locationName}
+              onChange={e => setLocationName(e.target.value)}
+            />
+          </div>
+
+          <div style={{
+            display: 'grid',
+            gridTemplateColumns: 'repeat(auto-fit, minmax(150px, 1fr))',
+            gap: 'var(--spacing-md)',
+            marginBottom: 'var(--spacing-md)'
+          }}>
+            <div className="form-group">
+              <label className="form-label">
+                Latitud {requiresLocation && <span className="required">*</span>}
+              </label>
+              <input
+                type="number"
+                step="any"
+                className="form-input"
+                placeholder="-33.4569"
+                value={latitude}
+                onChange={e => setLatitude(e.target.value)}
+                required={requiresLocation}
+              />
+            </div>
+
+            <div className="form-group">
+              <label className="form-label">
+                Longitud {requiresLocation && <span className="required">*</span>}
+              </label>
+              <input
+                type="number"
+                step="any"
+                className="form-input"
+                placeholder="-70.6483"
+                value={longitude}
+                onChange={e => setLongitude(e.target.value)}
+                required={requiresLocation}
+              />
+            </div>
+
+            <div className="form-group">
+              <label className="form-label">
+                Radio permitido (metros)
+              </label>
+              <input
+                type="number"
+                className="form-input"
+                placeholder="100"
+                value={allowedRadius}
+                onChange={e => setAllowedRadius(e.target.value)}
+              />
+            </div>
+          </div>
+
+          <button
+            type="button"
+            onClick={captureCurrentLocation}
+            disabled={capturingLocation}
+            className="btn btn-outline btn-sm"
+          >
+            {capturingLocation ? 'Obteniendo ubicación...' : '📍 Usar mi ubicación actual'}
+          </button>
+        </div>
+
+        {/* Configuración de verificación */}
+        <div style={{
+          padding: 'var(--spacing-md)',
+          background: 'var(--bg-secondary)',
+          borderRadius: 'var(--radius-md)',
+          marginBottom: 'var(--spacing-md)',
+          border: '1px solid var(--border-color)'
+        }}>
+          <h4 style={{ marginTop: 0, marginBottom: 'var(--spacing-md)' }}>
+            🔒 Configuración de Verificación
+          </h4>
+
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--spacing-sm)' }}>
+            <label style={{ display: 'flex', alignItems: 'center', gap: 'var(--spacing-sm)', cursor: 'pointer' }}>
+              <input
+                type="checkbox"
+                checked={requiresQRCode}
+                onChange={e => setRequiresQRCode(e.target.checked)}
+                style={{ width: '18px', height: '18px' }}
+              />
+              <span>Requiere código QR</span>
+            </label>
+
+            <label style={{ display: 'flex', alignItems: 'center', gap: 'var(--spacing-sm)', cursor: 'pointer' }}>
+              <input
+                type="checkbox"
+                checked={requiresLocation}
+                onChange={e => setRequiresLocation(e.target.checked)}
+                style={{ width: '18px', height: '18px' }}
+              />
+              <span>Requiere verificación de ubicación</span>
+            </label>
+
+            <label style={{ display: 'flex', alignItems: 'center', gap: 'var(--spacing-sm)', cursor: 'pointer' }}>
+              <input
+                type="checkbox"
+                checked={requiresFacialRecognition}
+                onChange={e => setRequiresFacialRecognition(e.target.checked)}
+                style={{ width: '18px', height: '18px' }}
+              />
+              <span>Requiere reconocimiento facial</span>
+            </label>
+          </div>
+
+          <div className="form-group" style={{ marginTop: 'var(--spacing-md)', marginBottom: 0 }}>
+            <label className="form-label">
+              Tiempo mínimo de permanencia (minutos)
+            </label>
+            <input
+              type="number"
+              className="form-input"
+              placeholder="0"
+              value={minimumStayMinutes}
+              onChange={e => setMinimumStayMinutes(e.target.value)}
+              min="0"
+            />
+            <small style={{ color: 'var(--text-secondary)', fontSize: 'var(--text-sm)' }}>
+              Tiempo mínimo que los asistentes deben permanecer en el evento (0 = sin límite)
+            </small>
           </div>
         </div>
 
