@@ -6,7 +6,10 @@
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1",
     "start": "nodemon index.js",
-    "dev": "nodemon index.js"
+    "dev": "nodemon index.js",
+    "test:email": "node test-email.js",
+    "diagnose:email": "node diagnose-email.js",
+    "check:domain": "node check-domain.js"
   },
   "keywords": [],
   "author": "",
@@ -26,6 +29,7 @@
     "nodemon": "^3.1.7",
     "pdfkit": "^0.13.0",
     "qrcode": "^1.5.4",
+    "resend": "^6.5.2",
     "sharp": "^0.33.5"
   }
 }

@@ -1,5 +1,6 @@
 const Notification = require('../models/Notification');
 const User = require('../models/User');
+const emailService = require('./emailService');
 
 class NotificationService {
   /**
@@ -115,12 +116,22 @@ class NotificationService {
   static async sendEventReminder(event) {
     try {
       // Notificar a todos los usuarios sobre el evento próximo
-      return await this.notifyAllUsers({
+      const notifications = await this.notifyAllUsers({
         title: '📅 Recordatorio de Evento',
         message: `El evento "${event.name}" es mañana. ¡No olvides asistir!`,
         type: 'event_reminder',
         relatedEvent: event._id
       });
+
+      // Enviar emails a todos los usuarios
+      const users = await User.find({}, 'email');
+      const emailPromises = users.map(user =>
+        emailService.sendEventReminderEmail(user.email, event.name, event.date)
+          .catch(err => console.error(`Error sending email to ${user.email}:`, err))
+      );
+      await Promise.allSettled(emailPromises);
+
+      return notifications;
     } catch (error) {
       console.error('Error sending event reminder:', error);
       throw error;
@@ -133,14 +144,25 @@ class NotificationService {
   static async notifyAttendanceRegistered(userId, eventName, isVerified) {
     try {
       const verifiedText = isVerified ? ' con verificación facial' : '';
-      
+
       // Notificar a administradores
-      return await this.notifyAdmins({
+      const notifications = await this.notifyAdmins({
         title: '✓ Nueva Asistencia Registrada',
         message: `Un usuario ha registrado su asistencia al evento "${eventName}"${verifiedText}.`,
         type: 'attendance_registered',
         relatedUser: userId
       });
+
+      // Enviar emails a administradores
+      const user = await User.findById(userId, 'name');
+      const admins = await User.find({ role: 'admin' }, 'email');
+      const emailPromises = admins.map(admin =>
+        emailService.sendAttendanceNotificationEmail(admin.email, user.name, eventName, isVerified)
+          .catch(err => console.error(`Error sending email to ${admin.email}:`, err))
+      );
+      await Promise.allSettled(emailPromises);
+
+      return notifications;
     } catch (error) {
       console.error('Error notifying attendance:', error);
       throw error;
@@ -153,13 +175,24 @@ class NotificationService {
   static async notifyDocumentUploaded(documentTitle, documentId, uploadedBy) {
     try {
       // Notificar a todos los usuarios excepto quien lo subió
-      return await this.notifyAllUsers({
+      const notifications = await this.notifyAllUsers({
         title: '📄 Nuevo Documento Disponible',
         message: `Se ha subido un nuevo documento: "${documentTitle}". ¡Revísalo ahora!`,
         type: 'document_uploaded',
         excludeUserId: uploadedBy,
         relatedDocument: documentId
       });
+
+      // Enviar emails a todos excepto quien lo subió
+      const query = uploadedBy ? { _id: { $ne: uploadedBy } } : {};
+      const users = await User.find(query, 'email');
+      const emailPromises = users.map(user =>
+        emailService.sendDocumentUploadedEmail(user.email, documentTitle)
+          .catch(err => console.error(`Error sending email to ${user.email}:`, err))
+      );
+      await Promise.allSettled(emailPromises);
+
+      return notifications;
     } catch (error) {
       console.error('Error notifying document upload:', error);
       throw error;
@@ -172,12 +205,23 @@ class NotificationService {
   static async notifyUserCreated(userName, userId) {
     try {
       // Notificar a administradores
-      return await this.notifyAdmins({
+      const notifications = await this.notifyAdmins({
         title: '👤 Nuevo Usuario Registrado',
         message: `${userName} se ha registrado en el sistema.`,
         type: 'user_created',
         relatedUser: userId
       });
+
+      // Enviar emails a administradores
+      const newUser = await User.findById(userId, 'email');
+      const admins = await User.find({ role: 'admin' }, 'email');
+      const emailPromises = admins.map(admin =>
+        emailService.sendUserCreatedEmail(admin.email, userName, newUser.email)
+          .catch(err => console.error(`Error sending email to ${admin.email}:`, err))
+      );
+      await Promise.allSettled(emailPromises);
+
+      return notifications;
     } catch (error) {
       console.error('Error notifying user creation:', error);
       throw error;
