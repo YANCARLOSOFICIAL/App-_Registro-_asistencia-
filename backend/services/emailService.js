@@ -5,110 +5,173 @@ class EmailService {
     this.resend = new Resend(process.env.RESEND_API_KEY);
     this.fromEmail = process.env.EMAIL_FROM || 'onboarding@resend.dev';
     this.appName = process.env.APP_NAME || 'Sistema de Registro de Asistencia';
+    this.logoUrl = process.env.APP_LOGO_URL || '';
+    this.supportEmail = process.env.SUPPORT_EMAIL || '';
   }
 
   /**
    * Generar HTML base para emails
    */
-  generateEmailHTML(title, content, actionButton = null) {
+  createActionButton(url, label = 'Ver') {
+    if (!url) return '';
     return `
-    <!DOCTYPE html>
+      <div style="text-align:center;margin:24px 0;">
+        <a href="${url}" target="_blank" rel="noopener noreferrer" class="button" style="display:inline-block;padding:12px 26px;background:linear-gradient(90deg,#6366f1 0%,#8b5cf6 100%);color:#fff;text-decoration:none;border-radius:12px;font-weight:700;box-shadow:0 8px 20px rgba(99,102,241,0.12);letter-spacing:0.2px;">${label}</a>
+      </div>
+    `;
+  }
+
+  generatePlainText(html) {
+    if (!html) return '';
+    // Simple plain-text extraction: remove tags and decode basic entities
+    const withoutTags = html.replace(/<\/?[^>]+(>|$)/g, '');
+    const decoded = withoutTags.replace(/&nbsp;/g, ' ').replace(/&amp;/g, '&').replace(/&lt;/g, '<').replace(/&gt;/g, '>');
+    return decoded.replace(/\s{2,}/g, ' ').trim();
+  }
+
+  /**
+   * Generar HTML base para emails (mejorado)
+   * actionButton: HTML string producido por createActionButton
+   * preheader: texto corto que se muestra como preheader en clientes de correo
+   */
+  generateEmailHTML(title, content, actionButton = null, preheader = '') {
+    const logoImg = this.logoUrl ? `<img src="${this.logoUrl}" alt="${this.appName} logo" style="max-height:48px;margin-bottom:8px;" />` : '';
+    const safePreheader = preheader ? `<span class="preheader" style="display:none!important;visibility:hidden;opacity:0;color:transparent;height:0;width:0;overflow:hidden;">${preheader}</span>` : '';
+
+    return `<!DOCTYPE html>
     <html>
       <head>
         <meta charset="utf-8">
         <meta name="viewport" content="width=device-width, initial-scale=1.0">
+        <meta name="color-scheme" content="light dark">
         <style>
           body {
-            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-            line-height: 1.6;
-            color: #333;
-            background-color: #f4f4f4;
             margin: 0;
             padding: 0;
+            background-color: #f5f7fb;
+            color: #111827;
+            -webkit-font-smoothing: antialiased;
+            -moz-osx-font-smoothing: grayscale;
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, 'Noto Sans', 'Liberation Sans', sans-serif;
           }
+
           .container {
-            max-width: 600px;
-            margin: 20px auto;
-            background-color: #ffffff;
-            border-radius: 8px;
-            box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+            max-width: 640px;
+            margin: 28px auto;
+            background: #ffffff;
+            border-radius: 14px;
             overflow: hidden;
+            border: 1px solid rgba(15,23,42,0.04);
+            box-shadow: 0 10px 30px rgba(2,6,23,0.06);
           }
+
           .header {
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-            color: white;
-            padding: 30px;
+            padding: 28px 20px;
             text-align: center;
+            background: linear-gradient(180deg, rgba(99,102,241,0.08) 0%, rgba(139,92,246,0.04) 100%);
           }
-          .header h1 {
+
+          .brand {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 14px;
+          }
+
+          .logo-wrap {
+            width: 56px;
+            height: 56px;
+            border-radius: 12px;
+            background: linear-gradient(135deg,#eef2ff,#f3e8ff);
+            display:flex;
+            align-items:center;
+            justify-content:center;
+            box-shadow: 0 6px 18px rgba(99,102,241,0.06);
+          }
+
+          .brand h1 {
             margin: 0;
-            font-size: 24px;
+            font-size: 18px;
+            font-weight: 700;
+            color: #0f172a;
           }
+
           .content {
-            padding: 30px;
+            padding: 26px 28px;
           }
-          .notification-title {
+
+          .title {
             font-size: 20px;
-            font-weight: bold;
-            color: #2d3748;
-            margin-bottom: 15px;
+            font-weight: 800;
+            margin: 0 0 8px 0;
+            color: #0b1220;
           }
-          .notification-message {
-            font-size: 16px;
-            color: #4a5568;
-            line-height: 1.8;
-            margin-bottom: 20px;
+
+          .subtitle {
+            margin: 0 0 18px 0;
+            color: #475569;
+            font-size: 14px;
           }
-          .button {
-            display: inline-block;
-            padding: 12px 30px;
-            background-color: #667eea;
-            color: white;
-            text-decoration: none;
-            border-radius: 5px;
-            font-weight: bold;
-            margin: 20px 0;
+
+          .message {
+            font-size: 15px;
+            color: #334155;
+            line-height: 1.7;
+            margin-bottom: 18px;
           }
-          .button:hover {
-            background-color: #5568d3;
+
+          .meta {
+            font-size: 13px;
+            color: #6b7280;
+            margin-top: 10px;
           }
+
           .footer {
-            background-color: #f7fafc;
-            padding: 20px;
+            background: #fbfdff;
+            padding: 18px 20px;
             text-align: center;
-            font-size: 12px;
-            color: #718096;
+            font-size: 13px;
+            color: #6b7280;
           }
-          .divider {
-            border-top: 1px solid #e2e8f0;
-            margin: 20px 0;
+
+          a { color: #4f46e5; }
+
+          @media (max-width: 520px) {
+            .container { margin: 16px; }
+            .content { padding: 18px; }
+            .brand h1 { font-size: 16px; }
+            .title { font-size: 18px; }
           }
         </style>
       </head>
       <body>
+        ${safePreheader}
         <div class="container">
           <div class="header">
-            <h1>${this.appName}</h1>
+            <div class="brand">
+              ${logoImg}
+              <h1>${this.appName}</h1>
+            </div>
           </div>
           <div class="content">
-            <div class="notification-title">${title}</div>
-            <div class="notification-message">${content}</div>
+            <div class="title">${title}</div>
+            <div class="message">${content}</div>
             ${actionButton || ''}
           </div>
           <div class="footer">
-            <p>Este es un correo automático, por favor no respondas a este mensaje.</p>
-            <p>&copy; ${new Date().getFullYear()} ${this.appName}. Todos los derechos reservados.</p>
+            <div class="small">Este es un correo automático enviado por ${this.appName}.</div>
+            ${this.supportEmail ? `<div class="small">¿Necesitas ayuda? Escríbenos a <a href="mailto:${this.supportEmail}">${this.supportEmail}</a></div>` : ''}
+            <div style="margin-top:8px;" class="small">&copy; ${new Date().getFullYear()} ${this.appName}. Todos los derechos reservados.</div>
           </div>
         </div>
       </body>
-    </html>
-    `;
+    </html>`;
   }
 
   /**
    * Enviar email usando Resend
    */
-  async sendEmail({ to, subject, html }) {
+  async sendEmail({ to, subject, html, text }) {
     try {
       if (!process.env.RESEND_API_KEY) {
         console.warn('⚠️  RESEND_API_KEY not configured. Email not sent.');
@@ -120,11 +183,15 @@ class EmailService {
       console.log(`   Para: ${to}`);
       console.log(`   Asunto: ${subject}`);
 
+      // Ensure we have a plain-text fallback for better deliverability and accessibility
+      const fallbackText = text || this.generatePlainText(html);
+
       const result = await this.resend.emails.send({
-        from: this.fromEmail,
+        from: `${this.appName} <${this.fromEmail}>`,
         to,
         subject,
-        html
+        html,
+        text: fallbackText
       });
 
       // Debug: Ver estructura completa de la respuesta
