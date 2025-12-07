@@ -580,3 +580,87 @@ exports.checkOutAttendance = async (req, res) => {
     res.status(500).json({ error: err.message });
   }
 };
+
+// Actualizar evento (solo admin o creador del evento)
+exports.updateEvent = async (req, res) => {
+  try {
+    const event = await Event.findById(req.params.id);
+
+    if (!event) {
+      return res.status(404).json({ error: 'Evento no encontrado' });
+    }
+
+    // Verificar permisos: solo el creador o admin pueden editar
+    if (event.createdBy.toString() !== req.user._id.toString() && req.user.role !== 'admin') {
+      return res.status(403).json({ error: 'No tienes permiso para editar este evento' });
+    }
+
+    const { name, description, date, endDate, location, locationName, allowedRadius,
+            requiresFacialRecognition, requiresQRCode, requiresLocation, minimumStayMinutes } = req.body;
+
+    // Actualizar campos proporcionados
+    if (name) event.name = name;
+    if (description !== undefined) event.description = description;
+    if (date) event.date = date;
+    if (endDate !== undefined) event.endDate = endDate;
+    if (locationName !== undefined) event.locationName = locationName;
+    if (allowedRadius !== undefined) event.allowedRadius = allowedRadius;
+    if (requiresFacialRecognition !== undefined) event.requiresFacialRecognition = requiresFacialRecognition;
+    if (requiresQRCode !== undefined) event.requiresQRCode = requiresQRCode;
+    if (requiresLocation !== undefined) event.requiresLocation = requiresLocation;
+    if (minimumStayMinutes !== undefined) event.minimumStayMinutes = minimumStayMinutes;
+
+    // Actualizar ubicación si se proporciona
+    if (location && location.coordinates && location.coordinates.length === 2) {
+      event.location = {
+        type: 'Point',
+        coordinates: location.coordinates
+      };
+    }
+
+    // Si se cambió la configuración de QR y no tenía uno, generarlo
+    if (requiresQRCode && (!event.currentQRCode || !event.currentQRCode.code)) {
+      const qrData = await QRService.generateQRCode(event);
+      event.currentQRCode = {
+        code: qrData.code,
+        generatedAt: qrData.generatedAt,
+        expiresAt: qrData.expiresAt
+      };
+      event.qrConfig.secret = qrData.secret;
+    }
+
+    await event.save();
+
+    res.json({ message: 'Evento actualizado con éxito', event });
+  } catch (err) {
+    console.error('Error actualizando evento:', err);
+    res.status(500).json({ error: err.message });
+  }
+};
+
+// Eliminar evento (solo admin o creador del evento)
+exports.deleteEvent = async (req, res) => {
+  try {
+    const event = await Event.findById(req.params.id);
+
+    if (!event) {
+      return res.status(404).json({ error: 'Evento no encontrado' });
+    }
+
+    // Verificar permisos: solo el creador o admin pueden eliminar
+    if (event.createdBy.toString() !== req.user._id.toString() && req.user.role !== 'admin') {
+      return res.status(403).json({ error: 'No tienes permiso para eliminar este evento' });
+    }
+
+    // Eliminar todas las asistencias asociadas al evento
+    await Attendance.deleteMany({ event: req.params.id });
+
+    // Eliminar el evento
+    await Event.findByIdAndDelete(req.params.id);
+
+    res.json({ message: 'Evento y asistencias asociadas eliminados con éxito' });
+  } catch (err) {
+    console.error('Error eliminando evento:', err);
+    res.status(500).json({ error: err.message });
+  }
+};

@@ -1,6 +1,6 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 
-const EventForm = ({ onCreate }) => {
+const EventForm = ({ onCreate, event = null, isEditing = false }) => {
   const [name, setName] = useState('');
   const [description, setDescription] = useState('');
   const [date, setDate] = useState('');
@@ -23,7 +23,40 @@ const EventForm = ({ onCreate }) => {
 
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
-  const [showForm, setShowForm] = useState(false);
+  const [showForm, setShowForm] = useState(isEditing);
+
+  // Prellenar el formulario si estamos editando
+  useEffect(() => {
+    if (event && isEditing) {
+      setName(event.name || '');
+      setDescription(event.description || '');
+
+      // Procesar la fecha
+      if (event.date) {
+        const eventDate = new Date(event.date);
+        setDate(eventDate.toISOString().split('T')[0]);
+        setTime(eventDate.toTimeString().slice(0, 5));
+      }
+
+      if (event.endDate) {
+        const eventEndDate = new Date(event.endDate);
+        setEndDate(eventEndDate.toISOString().split('T')[0]);
+        setEndTime(eventEndDate.toTimeString().slice(0, 5));
+      }
+
+      setLocationName(event.locationName || '');
+      if (event.location && event.location.coordinates) {
+        setLongitude(event.location.coordinates[0].toString());
+        setLatitude(event.location.coordinates[1].toString());
+      }
+      setAllowedRadius(event.allowedRadius?.toString() || '100');
+      setRequiresQRCode(event.requiresQRCode !== false);
+      setRequiresLocation(event.requiresLocation !== false);
+      setRequiresFacialRecognition(event.requiresFacialRecognition || false);
+      setMinimumStayMinutes(event.minimumStayMinutes?.toString() || '0');
+      setShowForm(true);
+    }
+  }, [event, isEditing]);
 
   const resetForm = () => {
     setName('');
@@ -113,9 +146,6 @@ const EventForm = ({ onCreate }) => {
       description: description.trim(),
       date: new Date(dateTimeString).toISOString(),
       endDate: endDateTimeString ? new Date(endDateTimeString).toISOString() : null,
-      location: {
-        coordinates: [parseFloat(longitude), parseFloat(latitude)]
-      },
       locationName: locationName.trim(),
       allowedRadius: parseInt(allowedRadius) || 100,
       requiresQRCode,
@@ -124,18 +154,27 @@ const EventForm = ({ onCreate }) => {
       minimumStayMinutes: parseInt(minimumStayMinutes) || 0
     };
 
+    // Solo agregar ubicación si se proporciona
+    if (latitude && longitude) {
+      eventData.location = {
+        coordinates: [parseFloat(longitude), parseFloat(latitude)]
+      };
+    }
+
     try {
       await onCreate(eventData);
-      resetForm();
-      setShowForm(false);
+      if (!isEditing) {
+        resetForm();
+        setShowForm(false);
+      }
     } catch (err) {
-      setError('Error al crear el evento');
+      setError(isEditing ? 'Error al actualizar el evento' : 'Error al crear el evento');
     }
-    
+
     setLoading(false);
   };
 
-  if (!showForm) {
+  if (!showForm && !isEditing) {
     return (
       <div style={{ marginBottom: 'var(--spacing-xl)' }}>
         <button
@@ -148,30 +187,32 @@ const EventForm = ({ onCreate }) => {
     );
   }
 
-  // Obtener fecha mínima (hoy)
-  const today = new Date().toISOString().split('T')[0];
+  // Obtener fecha mínima (hoy para creación, cualquiera para edición)
+  const today = isEditing ? '' : new Date().toISOString().split('T')[0];
 
   return (
-    <div className="card" style={{ marginBottom: 'var(--spacing-xl)' }}>
-      <div style={{ 
-        display: 'flex', 
-        justifyContent: 'space-between', 
-        alignItems: 'center',
-        marginBottom: 'var(--spacing-lg)'
-      }}>
-        <h3 style={{ margin: 0, fontSize: 'var(--text-xl)' }}>
-          ➕ Crear Nuevo Evento
-        </h3>
-        <button
-          onClick={() => {
-            setShowForm(false);
-            resetForm();
-          }}
-          className="btn btn-ghost btn-sm"
-        >
-          ✕ Cerrar
-        </button>
-      </div>
+    <div className={isEditing ? '' : 'card'} style={isEditing ? {} : { marginBottom: 'var(--spacing-xl)' }}>
+      {!isEditing && (
+        <div style={{
+          display: 'flex',
+          justifyContent: 'space-between',
+          alignItems: 'center',
+          marginBottom: 'var(--spacing-lg)'
+        }}>
+          <h3 style={{ margin: 0, fontSize: 'var(--text-xl)' }}>
+            ➕ Crear Nuevo Evento
+          </h3>
+          <button
+            onClick={() => {
+              setShowForm(false);
+              resetForm();
+            }}
+            className="btn btn-ghost btn-sm"
+          >
+            ✕ Cerrar
+          </button>
+        </div>
+      )}
 
       <form onSubmit={handleSubmit}>
         <div className="form-group">
@@ -416,7 +457,7 @@ const EventForm = ({ onCreate }) => {
         </div>
 
         {/* Preview del evento */}
-        {name && date && (
+        {name && date && !isEditing && (
           <div style={{
             padding: 'var(--spacing-md)',
             background: 'var(--bg-secondary)',
@@ -475,32 +516,34 @@ const EventForm = ({ onCreate }) => {
           gap: 'var(--spacing-md)',
           marginTop: 'var(--spacing-lg)'
         }}>
-          <button
-            type="button"
-            onClick={() => {
-              setShowForm(false);
-              resetForm();
-            }}
-            className="btn btn-outline"
-            style={{ flex: 1 }}
-            disabled={loading}
-          >
-            Cancelar
-          </button>
+          {!isEditing && (
+            <button
+              type="button"
+              onClick={() => {
+                setShowForm(false);
+                resetForm();
+              }}
+              className="btn btn-outline"
+              style={{ flex: 1 }}
+              disabled={loading}
+            >
+              Cancelar
+            </button>
+          )}
           <button
             type="submit"
             className="btn btn-primary"
-            style={{ flex: 2 }}
+            style={{ flex: isEditing ? 1 : 2 }}
             disabled={loading}
           >
             {loading ? (
               <>
                 <div className="spinner spinner-sm" style={{ borderTopColor: 'white' }}></div>
-                Creando...
+                {isEditing ? 'Actualizando...' : 'Creando...'}
               </>
             ) : (
               <>
-                ➕ Crear evento
+                {isEditing ? '✓ Actualizar evento' : '➕ Crear evento'}
               </>
             )}
           </button>
@@ -508,28 +551,30 @@ const EventForm = ({ onCreate }) => {
       </form>
 
       {/* Tips */}
-      <div style={{
-        marginTop: 'var(--spacing-lg)',
-        padding: 'var(--spacing-md)',
-        background: 'var(--bg-secondary)',
-        borderRadius: 'var(--radius-md)',
-        border: '1px solid var(--border-color-dark)'
-      }}>
-        <p style={{
-          margin: 0,
-          color: 'var(--text-secondary)',
-          fontSize: 'var(--text-sm)',
-          lineHeight: 1.6
+      {!isEditing && (
+        <div style={{
+          marginTop: 'var(--spacing-lg)',
+          padding: 'var(--spacing-md)',
+          background: 'var(--bg-secondary)',
+          borderRadius: 'var(--radius-md)',
+          border: '1px solid var(--border-color-dark)'
         }}>
-          <strong style={{ color: 'var(--text-primary)' }}>💡 Consejos:</strong>
-          <br />
-          • Usa nombres descriptivos para tus eventos
-          <br />
-          • Especifica la hora para eventos con horario fijo
-          <br />
-          • Los usuarios podrán registrar su asistencia desde la sección de Eventos
-        </p>
-      </div>
+          <p style={{
+            margin: 0,
+            color: 'var(--text-secondary)',
+            fontSize: 'var(--text-sm)',
+            lineHeight: 1.6
+          }}>
+            <strong style={{ color: 'var(--text-primary)' }}>💡 Consejos:</strong>
+            <br />
+            • Usa nombres descriptivos para tus eventos
+            <br />
+            • Especifica la hora para eventos con horario fijo
+            <br />
+            • Los usuarios podrán registrar su asistencia desde la sección de Eventos
+          </p>
+        </div>
+      )}
     </div>
   );
 };

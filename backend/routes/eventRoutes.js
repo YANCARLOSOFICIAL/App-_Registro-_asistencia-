@@ -18,10 +18,14 @@ const upload = multer({
   }
 });
 
-// Crear evento (solo admin)
+// Crear evento (requiere autenticación)
 router.post('/', auth.authenticate, eventController.createEvent);
 // Listar eventos
 router.get('/', auth.authenticate, eventController.getEvents);
+// Actualizar evento (solo admin o creador)
+router.put('/:id', auth.authenticate, eventController.updateEvent);
+// Eliminar evento (solo admin o creador)
+router.delete('/:id', auth.authenticate, eventController.deleteEvent);
 
 // MÉTODOS DE ASISTENCIA ANTIGUOS (mantener para compatibilidad)
 // Registrar asistencia a evento (simple, sin foto)
